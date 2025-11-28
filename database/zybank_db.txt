@@ -1,0 +1,129 @@
+-- =========================
+-- 1. LOCATION
+-- =========================
+INSERT INTO LOCATION (BRANCH_ID, NAME, ADDRESS, LAT, LNG, OPEN_HOURS, CREATED_AT)
+VALUES
+('L001','Branch A','123 Street A',10.776,106.700,'08:00-17:00',NOW()),
+('L002','Branch B','456 Street B',10.780,106.705,'08:00-17:00',NOW()),
+('L003','Branch C','789 Street C',10.785,106.710,'08:00-17:00',NOW()),
+('L004','Branch D','321 Street D',10.790,106.715,'08:00-17:00',NOW()),
+('L005','Branch E','654 Street E',10.795,106.720,'08:00-17:00',NOW());
+
+-- =========================
+-- 2. USER (EKYC_ID tạm NULL)
+-- =========================
+INSERT INTO USER (USER_ID, EKYC_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, IS_ACTIVE, PASSWORD_HASH)
+VALUES 
+('U001', NULL, 'Nguyen Van A', 'a@gmail.com', '0123456789', 'customer', NOW(), 1, 'hash123'),
+('U002', NULL, 'Tran Thi B', 'b@gmail.com', '0987654321', 'customer', NOW(), 1, 'hash234'),
+('U003', NULL, 'Le Van C', 'c@gmail.com', '0911223344', 'customer', NOW(), 1, 'hash345'),
+('U004', NULL, 'Pham Thi D', 'd@gmail.com', '0909988776', 'customer', NOW(), 1, 'hash456'),
+('U005', NULL, 'Hoang Van E', 'e@gmail.com', '0933445566', 'customer', NOW(), 1, 'hash567');
+
+-- =========================
+-- 3. EKYC (USER_ID đã tồn tại)
+-- =========================
+INSERT INTO EKYC (EKYC_ID, USER_ID, ID_IMG_FRONT_URL, ID_IMG_BACK_URL, SELFIE_URL, STATUS, REVIEWED_AT, REVIEWED_BY, CREATED_AT)
+VALUES 
+('E001', 'U001', 'front1.jpg', 'back1.jpg', 'selfie1.jpg', 'approved', NOW(), 'officer01', NOW()),
+('E002', 'U002', 'front2.jpg', 'back2.jpg', 'selfie2.jpg', 'pending', NULL, NULL, NOW()),
+('E003', 'U003', 'front3.jpg', 'back3.jpg', 'selfie3.jpg', 'rejected', NOW(), 'officer02', NOW()),
+('E004', 'U004', 'front4.jpg', 'back4.jpg', 'selfie4.jpg', 'approved', NOW(), 'officer03', NOW()),
+('E005', 'U005', 'front5.jpg', 'back5.jpg', 'selfie5.jpg', 'approved', NOW(), 'officer01', NOW());
+
+-- =========================
+-- 4. Cập nhật USER để gán EKYC_ID
+-- =========================
+UPDATE USER SET EKYC_ID='E001' WHERE USER_ID='U001';
+UPDATE USER SET EKYC_ID='E002' WHERE USER_ID='U002';
+UPDATE USER SET EKYC_ID='E003' WHERE USER_ID='U003';
+UPDATE USER SET EKYC_ID='E004' WHERE USER_ID='U004';
+UPDATE USER SET EKYC_ID='E005' WHERE USER_ID='U005';
+
+-- =========================
+-- 5. SAVING_DETAIL
+-- =========================
+INSERT INTO SAVING_DETAIL (SAVING_ACC_ID, ACCOUNT_ID, PRINCIPAL_AMOUNT, INTEREST_RATE, TERM_MONTHS, START_DATE, MATURITY_DATE)
+VALUES 
+('S001', 'A001', 10000000, 0.05, 12, NOW(), '2026-11-22'),
+('S002', 'A002', 15000000, 0.04, 24, NOW(), '2027-11-22'),
+('S003', 'A003', 5000000, 0.03, 6, NOW(), '2026-05-22'),
+('S004', 'A004', 8000000, 0.045, 18, NOW(), '2027-05-22'),
+('S005', 'A005', 12000000, 0.05, 12, NOW(), '2026-11-22');
+
+-- =========================
+-- 6. ACCOUNT (SAVING_ACC_ID đã tồn tại)
+-- =========================
+INSERT INTO ACCOUNT (ACCOUNT_ID, MORTAGE_ACC_ID, USER_ID, SAVING_ACC_ID, ACCOUNT_TYPE, BALANCE, INTEREST_RATE, CREATED_AT, STATUS, ACCOUNT_NUMBER)
+VALUES 
+('A001', NULL, 'U001', 'S001', 'checking', 5000000, 0, NOW(), 'active', '1234567890'),
+('A002', NULL, 'U002', 'S002', 'checking', 10000000, 0, NOW(), 'active', '1234567891'),
+('A003', NULL, 'U003', 'S003', 'checking', 7500000, 0, NOW(), 'active', '1234567892'),
+('A004', NULL, 'U004', 'S004', 'checking', 2000000, 0, NOW(), 'active', '1234567893'),
+('A005', NULL, 'U005', 'S005', 'checking', 3000000, 0, NOW(), 'active', '1234567894');
+
+-- =========================
+-- 7. MORTAGE_DETAIL
+-- =========================
+INSERT INTO MORTAGE_DETAIL (MORTAGE_ACC_ID, ACCOUNT_ID, TOTAL_LOAN_AMOUNT, REMAINING_BALANCE, PAYMEN_FREQUENCY, PAYMENT_AMOUNT, NEXT_PAYMENT_DATE, LOAN_END_DATE)
+VALUES
+('M001','A001',20000000,18000000,'monthly',1666666,NOW(),'2026-11-22'),
+('M002','A002',30000000,28000000,'monthly',2500000,NOW(),'2027-11-22'),
+('M003','A003',15000000,14000000,'monthly',1250000,NOW(),'2026-12-22'),
+('M004','A004',10000000,9000000,'monthly',833333,NOW(),'2026-08-22'),
+('M005','A005',25000000,24000000,'monthly',2083333,NOW(),'2027-05-22');
+
+-- =========================
+-- 8. TRANSACTION
+-- =========================
+INSERT INTO TRANSACTION (TRANSACTION_ID, PAYMENT_ID, ACCOUNT_ID, AMOUNT, CURRENCY, ACCOUNT_TYPE, STATUS, CREATED_AT, COMPLETE_AT, DEST_ACC_NUM, DEST_ACC_NAME, DEST_BANK_CODE, TYPE)
+VALUES 
+('T001', 'BP001', 'A001', 200000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
+('T002', 'BP002', 'A002', 500000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
+('T003', 'BP003', 'A003', 300000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
+('T004', 'BP004', 'A004', 100000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
+('T005', 'BP005', 'A005', 400000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit');
+
+-- =========================
+-- 9. BILL_PAYMENT
+-- =========================
+INSERT INTO BILL_PAYMENT (PAYMENT_ID, TRANSACTION_ID, BILL_ID, PAID_AT)
+VALUES 
+('BP001', 'T001', 'B001', NOW()),
+('BP002', 'T002', 'B002', NOW()),
+('BP003', 'T003', 'B003', NOW()),
+('BP004', 'T004', 'B004', NOW()),
+('BP005', 'T005', 'B005', NOW());
+
+-- =========================
+-- 10. BILL
+-- =========================
+INSERT INTO BILL (BILL_ID, PAYMENT_ID, PROVIDER, AMOUNT_DUE, STATUS, DUE_DATE, CREATED_AT)
+VALUES 
+('B001', 'BP001', 'EVN', 500000, 'unpaid', NOW(), NOW()),
+('B002', 'BP002', 'EVN', 300000, 'unpaid', NOW(), NOW()),
+('B003', 'BP003', 'VNPT', 400000, 'unpaid', NOW(), NOW()),
+('B004', 'BP004', 'VNPT', 250000, 'unpaid', NOW(), NOW()),
+('B005', 'BP005', 'EVN', 600000, 'unpaid', NOW(), NOW());
+
+-- =========================
+-- 11. UTILITY_PAYMENT
+-- =========================
+INSERT INTO UTILITY_PAYMENT (UTILITY_PAYMENT_ID, TRANSACTION_ID, PROVIDER_CODE, REFERENCE_CODE_1, REFERENCE_CODE_2, CREATED_AT)
+VALUES 
+('UP001', 'T001', 'WATER', 'REF123', 'REF456', NOW()),
+('UP002', 'T002', 'ELECTRIC', 'REF223', 'REF556', NOW()),
+('UP003', 'T003', 'INTERNET', 'REF323', 'REF656', NOW()),
+('UP004', 'T004', 'WATER', 'REF423', 'REF756', NOW()),
+('UP005', 'T005', 'ELECTRIC', 'REF523', 'REF856', NOW());
+
+-- =========================
+-- 12. OTP
+-- =========================
+INSERT INTO OTP (OTP_ID, USER_ID, CODE, PURPOSE, CREATED_AT, EXPIRES_AT, IS_USED)
+VALUES
+('OTP001','U001','123456','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
+('OTP002','U002','654321','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
+('OTP003','U003','111222','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
+('OTP004','U004','333444','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
+('OTP005','U005','555666','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0);
