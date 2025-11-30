@@ -1,6 +1,6 @@
 /*==============================================================*/
 /* DBMS name:      MySQL 5.0                                    */
-/* Created on:     22/11/2025 12:22:41 PM                       */
+/* Created on:     30/11/2025 7:43:53 PM                        */
 /*==============================================================*/
 
 
@@ -130,7 +130,7 @@ create table ACCOUNT
 create table BILL
 (
    BILL_ID              varchar(10) not null  comment '',
-   PAYMENT_ID           varchar(10) not null  comment '',
+   PAYMENT_ID           varchar(10)  comment '',
    PROVIDER             varchar(100)  comment '',
    AMOUNT_DUE           datetime  comment '',
    STATUS               text  comment '',
@@ -235,7 +235,7 @@ create table SAVING_DETAIL
 create table TRANSACTION
 (
    TRANSACTION_ID       varchar(10) not null  comment '',
-   PAYMENT_ID           varchar(10) not null  comment '',
+   PAYMENT_ID           varchar(10)  comment '',
    ACCOUNT_ID           varchar(10)  comment '',
    AMOUNT               float  comment '',
    CURRENCY             varchar(100)  comment '',
@@ -256,7 +256,7 @@ create table TRANSACTION
 create table USER
 (
    USER_ID              varchar(10) not null  comment '',
-   EKYC_ID              varchar(10) not null  comment '',
+   EKYC_ID              varchar(10)  comment '',
    FULL_NAME            text  comment '',
    EMAIL                text  comment '',
    PHONE                text  comment '',
