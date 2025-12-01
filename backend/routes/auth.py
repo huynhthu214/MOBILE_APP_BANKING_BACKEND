@@ -1,27 +1,47 @@
 from flask import Blueprint, request, jsonify
-from database.db import get_connection
+from services.auth_service import (
+    login,
+    logout,
+    refresh,
+    send_otp,
+    verify_otp
+)
 
-auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
-@auth_bp.route("/login", methods=["POST"])
-def login():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM users WHERE email=%s AND password=%s",
-        (email, password)
-    )
-    user = cursor.fetchone()
+@bp.route('/login', methods=['POST'])
+def login_route():
+    data = request.get_json()
+    result = login(data)
+    return jsonify(result), result.get("status_code", 200)
 
-    if user:
-        return jsonify({
-            "status": "success",
-            "user_id": user["id"],
-            "role": user["role"]
-        })
-    else:
-        return jsonify({"status": "fail"}), 401
+
+@bp.route('/logout', methods=['POST'])
+def logout_route():
+    data = request.get_json() or {}
+    auth_header = request.headers.get('Authorization')
+    result = logout(data, auth_header)
+    return jsonify(result), result.get("status_code", 200)
+
+
+@bp.route('/refresh', methods=['POST'])
+def refresh_route():
+    data = request.get_json() or {}
+    result = refresh(data)
+    return jsonify(result), result.get("status_code", 200)
+
+
+@bp.route('/send-otp', methods=['POST'])
+def send_otp_route():
+    data = request.get_json() or {}
+    result = send_otp(data)
+    return jsonify(result), result.get("status_code", 200)
+
+
+@bp.route('/verify-otp', methods=['POST'])
+def verify_otp_route():
+    data = request.get_json() or {}
+    result = verify_otp(data)
+    return jsonify(result), result.get("status_code", 200)
+
