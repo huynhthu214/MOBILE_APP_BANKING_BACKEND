@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "User Service",
+    "_postman_id": "zybank-user-service",
+    "description": "Test endpoints for user_service.py",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"FULL_NAME\": \"Minh Thu\",\n  \"EMAIL\": \"minhthu@example.com\",\n  \"PHONE\": \"0123456789\",\n  \"PASSWORD\": \"Password123!\",\n  \"ROLE\": \"user\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/users",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get User Detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/users/U001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "users", "U001"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"FULL_NAME\": \"Minh Thu Updated\",\n  \"PHONE\": \"0987654321\",\n  \"ROLE\": \"admin\",\n  \"IS_ACTIVE\": true\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/users/U001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "users", "U001"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Users",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/users?keyword=Minh",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "users"],
+          "query": [
+            { "key": "keyword", "value": "Minh" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
