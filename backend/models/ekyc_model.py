@@ -7,10 +7,11 @@ def generate_ekyc_id():
         with conn.cursor() as cur:
             cur.execute("SELECT EKYC_ID FROM EKYC ORDER BY EKYC_ID DESC LIMIT 1")
             last = cur.fetchone()
-            if last:
-                num = int(last["EKYC_ID"][1:]) + 1
-                return f"E{num:03d}"
-            return "E001"
+            if last and last["EKYC_ID"]:
+                last_id = last["EKYC_ID"]   # ví dụ: EK002
+                num = int(last_id[2:]) + 1  # cắt đúng sau "EK"
+                return f"EK{num:03d}"
+            return "EK001"
     finally:
         conn.close()
 
