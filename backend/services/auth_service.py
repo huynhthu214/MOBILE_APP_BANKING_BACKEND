@@ -1,4 +1,3 @@
-# backend/auth/services/auth_service.py
 from db import get_conn
 from services.utils import (
     verify_password, create_access_token, create_refresh_token,
@@ -7,6 +6,7 @@ from services.utils import (
 )
 
 import jwt
+from datetime import datetime, timedelta
 from config import JWT_SECRET, JWT_ALGORITHM
 
 
@@ -46,6 +46,13 @@ def login(data):
     password = data.get('password')
     require_otp = data.get('require_otp', False)
 
+    # --- Thêm log debug ở đây ---
+    print("EMAIL:", email)
+    user = fetch_user_by_email(email)
+    print("USER:", user)
+    print("HASH:", user.get('PASSWORD_HASH') if user else None)
+    # -----------------------------
+    
     if not email or not password:
         return {"status":"error","message":"email and password required","status_code":400}
     
@@ -56,7 +63,10 @@ def login(data):
     if not user.get('IS_ACTIVE', 1):
         return {"status":"error","message":"account inactive","status_code":403}
 
-    if not verify_password(password, user.get('PASSWORD_HASH')):
+    # if not verify_password(password, user.get('PASSWORD_HASH')):
+    #     return {"status":"error","message":"invalid credentials","status_code":401}
+    
+    if password != user.get('PASSWORD_HASH'):
         return {"status":"error","message":"invalid credentials","status_code":401}
 
     if require_otp:
@@ -97,6 +107,19 @@ def logout(data, auth_header=None):
         blacklist_access_token(access)
 
     return {"status":"success","message":"logged out"}
+
+def create_refresh_token(user_id):
+    # chuyển U0001 → U001
+    short_id = "U" + str(int(user_id[1:])).zfill(3)
+    
+    payload = {
+        "sub": short_id,
+        "type": "refresh",
+        "exp": datetime.utcnow() + timedelta(days=7)
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    expires = datetime.utcnow() + timedelta(days=7)
+    return token, expires
 
 
 def refresh(data):
