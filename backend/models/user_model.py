@@ -1,4 +1,3 @@
-# backend/models/user_model.py
 from db import get_conn
 
 def create_user(data):

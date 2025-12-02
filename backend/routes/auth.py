@@ -31,17 +31,3 @@ def refresh_route():
     result = refresh(data)
     return jsonify(result), result.get("status_code", 200)
 
-
-@bp.route('/send-otp', methods=['POST'])
-def send_otp_route():
-    data = request.get_json() or {}
-    result = send_otp(data)
-    return jsonify(result), result.get("status_code", 200)
-
-
-@bp.route('/verify-otp', methods=['POST'])
-def verify_otp_route():
-    data = request.get_json() or {}
-    result = verify_otp(data)
-    return jsonify(result), result.get("status_code", 200)
-
