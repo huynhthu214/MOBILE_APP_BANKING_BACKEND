@@ -41,6 +41,17 @@ UPDATE USER SET EKYC_ID='E004' WHERE USER_ID='U004';
 UPDATE USER SET EKYC_ID='E005' WHERE USER_ID='U005';
 
 -- =========================
+-- 6. ACCOUNT (SAVING_ACC_ID đã tồn tại)
+-- =========================
+INSERT INTO ACCOUNT (ACCOUNT_ID, USER_ID, ACCOUNT_TYPE, BALANCE, INTEREST_RATE, CREATED_AT, STATUS, ACCOUNT_NUMBER)
+VALUES 
+('A001', 'U001', 'checking', 5000000, 0, NOW(), 'active', '1234567890'),
+('A002', 'U002', 'checking', 10000000, 0, NOW(), 'active', '1234567891'),
+('A003', 'U003', 'checking', 7500000, 0, NOW(), 'active', '1234567892'),
+('A004', 'U004', 'checking', 2000000, 0, NOW(), 'active', '1234567893'),
+('A005', 'U005', 'checking', 3000000, 0, NOW(), 'active', '1234567894');
+
+-- =========================
 -- 5. SAVING_DETAIL
 -- =========================
 INSERT INTO SAVING_DETAIL (SAVING_ACC_ID, ACCOUNT_ID, PRINCIPAL_AMOUNT, INTEREST_RATE, TERM_MONTHS, START_DATE, MATURITY_DATE)
@@ -50,17 +61,6 @@ VALUES
 ('S003', 'A003', 5000000, 0.03, 6, NOW(), '2026-05-22'),
 ('S004', 'A004', 8000000, 0.045, 18, NOW(), '2027-05-22'),
 ('S005', 'A005', 12000000, 0.05, 12, NOW(), '2026-11-22');
-
--- =========================
--- 6. ACCOUNT (SAVING_ACC_ID đã tồn tại)
--- =========================
-INSERT INTO ACCOUNT (ACCOUNT_ID, MORTAGE_ACC_ID, USER_ID, SAVING_ACC_ID, ACCOUNT_TYPE, BALANCE, INTEREST_RATE, CREATED_AT, STATUS, ACCOUNT_NUMBER)
-VALUES 
-('A001', NULL, 'U001', 'S001', 'checking', 5000000, 0, NOW(), 'active', '1234567890'),
-('A002', NULL, 'U002', 'S002', 'checking', 10000000, 0, NOW(), 'active', '1234567891'),
-('A003', NULL, 'U003', 'S003', 'checking', 7500000, 0, NOW(), 'active', '1234567892'),
-('A004', NULL, 'U004', 'S004', 'checking', 2000000, 0, NOW(), 'active', '1234567893'),
-('A005', NULL, 'U005', 'S005', 'checking', 3000000, 0, NOW(), 'active', '1234567894');
 
 -- =========================
 -- 7. MORTAGE_DETAIL
@@ -88,12 +88,12 @@ VALUES
 -- 9. BILL_PAYMENT
 -- =========================
 INSERT INTO BILL_PAYMENT (PAYMENT_ID, TRANSACTION_ID, BILL_ID, PAID_AT)
-VALUES 
-('BP001', 'T001', 'B001', NOW()),
-('BP002', 'T002', 'B002', NOW()),
-('BP003', 'T003', 'B003', NOW()),
-('BP004', 'T004', 'B004', NOW()),
-('BP005', 'T005', 'B005', NOW());
+VALUES
+('BP001', NULL, NULL, NOW()),
+('BP002', NULL, NULL, NOW()),
+('BP003', NULL, NULL, NOW()),
+('BP004', NULL, NULL, NOW()),
+('BP005', NULL, NULL, NOW());
 
 -- =========================
 -- 10. BILL
