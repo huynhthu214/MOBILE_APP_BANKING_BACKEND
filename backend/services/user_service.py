@@ -133,3 +133,24 @@ def list_users(keyword=""):
         u.pop("PASSWORD_HASH", None)
 
     return {"status":"success","data": users}
+
+def search_users(keyword):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    sql = """
+        SELECT USER_ID, FULL_NAME, EMAIL, PHONE, ROLE, IS_ACTIVE
+        FROM USER
+        WHERE FULL_NAME LIKE %s
+           OR EMAIL LIKE %s
+           OR PHONE LIKE %s
+    """
+
+    key = f"%{keyword}%"
+    cursor.execute(sql, (key, key, key))
+    data = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return data
