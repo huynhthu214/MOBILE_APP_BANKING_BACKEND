@@ -3,7 +3,8 @@ from services.user_service import (
     create_user,
     get_user_detail,
     update_user_info,
-    list_users
+    list_users, 
+    search_users
 )
 
 bp = Blueprint("users", __name__, url_prefix="/api/v1/users")
@@ -30,3 +31,8 @@ def list_users_route():
     keyword = request.args.get("keyword", "")
     result = list_users(keyword)
     return jsonify(result), 200
+
+@bp.route("/search", methods=["GET"])
+def route_search_users():
+    keyword = request.args.get("q", "")
+    return jsonify(search_users(keyword))

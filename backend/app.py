@@ -1,10 +1,23 @@
 from flask import Flask
 from routes.auth import bp as auth_bp
 from routes.users import bp as users_bp
+from routes.ekyc import bp as ekyc_bp
+from routes.files import bp as files_bp
+from routes.otp import bp as otp_bp
+from routes.accounts import bp as account_bp
+from routes.location import bp as location_bp
+from routes.system import bp as system_bp
 
 app = Flask(__name__)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(users_bp)
+app.register_blueprint(ekyc_bp)
+app.register_blueprint(files_bp)
+app.register_blueprint(otp_bp)
+app.register_blueprint(account_bp)
+app.register_blueprint(location_bp)
+app.register_blueprint(system_bp)
+
 if __name__ == "__main__":
     app.run(debug=True)

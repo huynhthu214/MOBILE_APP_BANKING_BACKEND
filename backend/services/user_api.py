@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from services.user_service import create_user, get_user_detail, update_user_info, list_users
+from user_service import create_user, get_user_detail, update_user_info, list_users
 
 app = Flask(__name__)
 
