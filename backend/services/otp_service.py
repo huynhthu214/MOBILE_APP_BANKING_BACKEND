@@ -4,21 +4,41 @@ import datetime, random
 def generate_otp_code(length=6):
     return ''.join([str(random.randint(0, 9)) for _ in range(length)])
 
+
 def send_otp(user_id, purpose="transaction"):
     otp_code = generate_otp_code()
-    otp_id = f"O{int(datetime.datetime.now().timestamp())}"
     expires_at = datetime.datetime.now() + datetime.timedelta(minutes=5)
-    OTPModel.create(otp_id, user_id, otp_code, purpose, expires_at)
-    return {"status": "success", "otp_id": otp_id, "code": otp_code, "message": "OTP sent"}
+
+    # OTP_ID được sinh tự động trong model
+    otp_id = OTPModel.create(user_id, otp_code, purpose, expires_at)
+
+    return {
+        "status": "success",
+        "otp_id": otp_id,
+        "code": otp_code,   # chỉ để test dev, production phải bỏ
+        "message": "OTP sent"
+    }
+
 
 def verify_otp(user_id, code, purpose="transaction"):
     otp = OTPModel.get_latest(user_id, purpose)
+
     if not otp:
         return {"status": "error", "message": "OTP not found or expired"}
+
     if otp["CODE"] != code:
         return {"status": "error", "message": "Incorrect OTP"}
+
+    if otp["IS_USED"]:
+        return {"status": "error", "message": "OTP already used"}
+
     OTPModel.mark_used(otp["OTP_ID"])
+
     return {"status": "success", "message": "OTP verified"}
 
+
 def list_otps():
-    return {"status": "success", "data": OTPModel.list_all()}
+    return {
+        "status": "success",
+        "data": OTPModel.list_all()
+    }

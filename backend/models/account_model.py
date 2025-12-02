@@ -85,10 +85,12 @@ class SavingDetailModel:
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                cur.execute(f"SELECT MAX(SUBSTRING(SAVING_ACC_ID, 4)) FROM {SavingDetailModel.TABLE_NAME}")
-                max_id = cur.fetchone()[0]
-                next_id = int(max_id or 0) + 1
-                saving_acc_id = f"SAV{next_id:02d}"
+                cur.execute(f"SELECT MAX(SUBSTRING(SAVING_ACC_ID, 4)) AS max_id FROM {SavingDetailModel.TABLE_NAME}")
+                row = cur.fetchone()
+                max_id = int(row["max_id"]) if row and row["max_id"] else 0
+                next_id = max_id + 1
+                saving_acc_id = f"S{next_id:03d}"
+
 
                 cur.execute(f"""
                     INSERT INTO {SavingDetailModel.TABLE_NAME} 
@@ -129,10 +131,11 @@ class MortageDetailModel:
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                cur.execute(f"SELECT MAX(SUBSTRING(MORTAGE_ACC_ID, 4)) FROM {MortageDetailModel.TABLE_NAME}")
-                max_id = cur.fetchone()[0]
-                next_id = int(max_id or 0) + 1
-                mortage_acc_id = f"MOR{next_id:02d}"
+                cur.execute(f"SELECT MAX(SUBSTRING(MORTAGE_ACC_ID, 4)) AS max_id FROM {MortageDetailModel.TABLE_NAME}")
+                row = cur.fetchone()
+                max_id = int(row["max_id"]) if row and row["max_id"] else 0
+                next_id = max_id + 1
+                mortage_acc_id = f"M{next_id:03d}"
 
                 cur.execute(f"""
                     INSERT INTO {MortageDetailModel.TABLE_NAME} 

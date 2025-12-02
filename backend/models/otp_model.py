@@ -1,10 +1,24 @@
 from db import get_conn
 
+def generate_otp_id():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT OTP_ID FROM OTP ORDER BY OTP_ID DESC LIMIT 1")
+            last = cur.fetchone()
+            if last and last["OTP_ID"]:
+                num = int(last["OTP_ID"][1:]) + 1
+                return f"O{num:03d}"
+            return "O001"
+    finally:
+        conn.close()
 class OTPModel:
     TABLE_NAME = "OTP"
 
     @staticmethod
-    def create(otp_id, user_id, code, purpose, expires_at):
+    def create(user_id, code, purpose, expires_at):
+        otp_id = generate_otp_id()
+
         conn = get_conn()
         try:
             with conn.cursor() as cur:
@@ -17,6 +31,7 @@ class OTPModel:
         finally:
             conn.close()
 
+        return otp_id
     @staticmethod
     def get_latest(user_id, purpose):
         conn = get_conn()

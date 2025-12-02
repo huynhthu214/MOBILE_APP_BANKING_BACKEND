@@ -1,5 +1,5 @@
 from models.account_model import AccountModel, SavingDetailModel, MortageDetailModel
-
+from datetime import datetime, timedelta
 # ===== ACCOUNT =====
 def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status="active", account_number=None):
     account_id = AccountModel.create(
@@ -30,7 +30,11 @@ def update_account(account_id, **kwargs):
     return {"status": "success", "message": "Account updated"}
 
 # ===== SAVING DETAIL =====
-def create_saving_detail(account_id, principal_amount, interest_rate, term_months, start_date, maturity_date):
+def create_saving_detail(account_id, principal_amount, interest_rate, term_months, start_date=None, maturity_date=None):
+    if start_date is None:
+        start_date = datetime.now()
+    if maturity_date is None:
+        maturity_date = start_date + timedelta(days=30*term_months)  # tạm tính mỗi tháng 30 ngày
     result = SavingDetailModel.create(
         account_id, principal_amount, interest_rate, term_months, start_date, maturity_date
     )
