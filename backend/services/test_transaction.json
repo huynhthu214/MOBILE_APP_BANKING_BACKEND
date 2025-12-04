@@ -1,0 +1,58 @@
+{
+  "info": {
+    "name": "Transactions Service",
+    "_postman_id": "zybank-transactions-service",
+    "description": "Test endpoints for transaction_service.py",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Transactions",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions?account_id=AC001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions"],
+          "query": [{ "key": "account_id", "value": "AC001" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Transaction Detail",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/TX001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "TX001"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Transfer",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"account_id\": \"A001\",\n  \"to_account_number\": \"1234567891\",\n  \"amount\": 10000000\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/transfer",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "transfer"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
