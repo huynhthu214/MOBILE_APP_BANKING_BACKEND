@@ -5,11 +5,50 @@ from services.transaction_service import (
     transfer_create_service,
     transfer_confirm_service,
     deposit_service,
-    withdraw_service
+    withdraw_service,
+    deposit_create_service,
+    deposit_confirm_service,
+    withdraw_create_service,
+    withdraw_confirm_service
 )
 
 bp = Blueprint("transactions", __name__, url_prefix="/api/v1/transactions")
 
+@bp.route("/deposit", methods=["POST"])
+def deposit_create_route():
+    data = request.get_json()
+    result = deposit_create_service(
+        data["account_id"],
+        data["amount"]
+    )
+    return jsonify(result)
+
+@bp.route("/deposit/confirm", methods=["POST"])
+def deposit_confirm_route():
+    data = request.get_json()
+    result = deposit_confirm_service(
+        data["transaction_id"],
+        data["otp"]
+    )
+    return jsonify(result)
+
+@bp.route("/withdraw", methods=["POST"])
+def withdraw_create_route():
+    data = request.get_json()
+    result = withdraw_create_service(
+        data["account_id"],
+        data["amount"]
+    )
+    return jsonify(result)
+
+@bp.route("/withdraw/confirm", methods=["POST"])
+def withdraw_confirm_route():
+    data = request.get_json()
+    result = withdraw_confirm_service(
+        data["transaction_id"],
+        data["otp"]
+    )
+    return jsonify(result)
 
 # Helper: validate input
 def require_fields(data, fields):

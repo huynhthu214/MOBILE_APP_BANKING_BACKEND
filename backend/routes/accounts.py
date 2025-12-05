@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify
 from services.account_service import (
     create_account, list_accounts, get_account, update_account,
     create_saving_detail, get_saving_detail,
-    create_mortage_detail, get_mortage_detail
+    create_mortage_detail, get_mortage_detail,
+    get_account_summary
 )
 
 bp = Blueprint("account", __name__, url_prefix="/api/v1/accounts")
@@ -25,6 +26,11 @@ def route_get_account(account_id):
 def route_update_account(account_id):
     data = request.json
     return jsonify(update_account(account_id, **data))
+
+@bp.route("/<account_id>/summary", methods=["GET"])
+def route_account_summary(account_id):
+    result = get_account_summary(account_id)
+    return jsonify(result), 200 if result["status"] == "success" else 400
 
 # ===== SAVING DETAIL =====
 @bp.route("/<account_id>/saving-detail", methods=["POST"])

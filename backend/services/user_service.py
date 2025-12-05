@@ -64,7 +64,7 @@ def create_user(data):
         "EMAIL": email,
         "PHONE": phone,
         "ROLE": role,
-        "PASSWORD_HASH": hashed_pwd,
+        "PASSWORD_HASH": plain_pwd,
         "IS_ACTIVE": 1
     })
 
