@@ -2,30 +2,53 @@ from flask import Blueprint, request, jsonify
 from services.location_service import (
     create_branch,
     get_all_branches,
-    get_branch_by_id,
+    get_branch_by_id_service,
     update_branch,
-    delete_branch
+    delete_branch,
+    find_nearby_branches,
+    calculate_simple_route
 )
 
 bp = Blueprint("location", __name__, url_prefix="/api/v1/branches")
 
 
 # ============================
-# POST /api/v1/branches
+# GET NEARBY
 # ============================
-@bp.route("", methods=["POST"])
-def create():
-    data = request.json
-    result = create_branch(data)
-    return jsonify(result)
+@bp.route("/nearby", methods=["GET"])
+def nearby():
+    try:
+        lat = float(request.args.get("lat"))
+        lng = float(request.args.get("lng"))
+        radius_m = float(request.args.get("radius_m"))
+    except:
+        return jsonify({"message": "lat, lng, radius_m phải là số"}), 400
+
+    result = find_nearby_branches(lat, lng, radius_m)
+
+    return jsonify({
+        "message": "success",
+        "count": len(result),
+        "data": result
+    })
 
 
 # ============================
-# GET /api/v1/branches
+# GET ROUTE
 # ============================
-@bp.route("", methods=["GET"])
-def get_all():
-    result = get_all_branches()
+@bp.route("/<branch_id>/route", methods=["GET"])
+def route_to_branch(branch_id):
+    try:
+        from_lat = float(request.args.get("from_lat"))
+        from_lng = float(request.args.get("from_lng"))
+    except:
+        return jsonify({"message": "from_lat/from_lng phải là số"}), 400
+
+    result = calculate_simple_route(branch_id, from_lat, from_lng)
+
+    if not result:
+        return jsonify({"message": "Branch not found"}), 404
+
     return jsonify({
         "message": "success",
         "data": result
@@ -33,11 +56,31 @@ def get_all():
 
 
 # ============================
-# GET /api/v1/branches/{id}
+# POST
+# ============================
+@bp.route("", methods=["POST"])
+def create():
+    data = request.json
+    return jsonify(create_branch(data))
+
+
+# ============================
+# GET ALL
+# ============================
+@bp.route("", methods=["GET"])
+def get_all():
+    return jsonify({
+        "message": "success",
+        "data": get_all_branches()
+    })
+
+
+# ============================
+# GET ONE
 # ============================
 @bp.route("/<branch_id>", methods=["GET"])
 def get_one(branch_id):
-    result = get_branch_by_id(branch_id)
+    result = get_branch_by_id_service(branch_id)
 
     if not result:
         return jsonify({"message": "not_found"}), 404
@@ -49,19 +92,17 @@ def get_one(branch_id):
 
 
 # ============================
-# PUT /api/v1/branches/{id}
+# PUT
 # ============================
 @bp.route("/<branch_id>", methods=["PUT"])
 def update(branch_id):
     data = request.json
-    result = update_branch(branch_id, data)
-    return jsonify(result)
+    return jsonify(update_branch(branch_id, data))
 
 
 # ============================
-# DELETE /api/v1/branches/{id}
+# DELETE
 # ============================
 @bp.route("/<branch_id>", methods=["DELETE"])
 def delete(branch_id):
-    result = delete_branch(branch_id)
-    return jsonify(result)
+    return jsonify(delete_branch(branch_id))

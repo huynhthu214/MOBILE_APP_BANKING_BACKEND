@@ -12,7 +12,7 @@ VALUES
 -- =========================
 -- 2. USER (EKYC_ID tạm NULL)
 -- =========================
-INSERT INTO USER (USER_ID, EKYC_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, IS_ACTIVE, PASSWORD_HASH)
+INSERT INTO USER (USER_ID, EKYC_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, IS_ACTIVE, PASSWORD)
 VALUES 
 ('U001', NULL, 'Nguyen Van A', 'a@gmail.com', '0123456789', 'customer', NOW(), 1, 'hash123'),
 ('U002', NULL, 'Tran Thi B', 'b@gmail.com', '0987654321', 'customer', NOW(), 1, 'hash234'),
@@ -23,7 +23,7 @@ VALUES
 -- =========================
 -- 3. EKYC (USER_ID đã tồn tại)
 -- =========================
-INSERT INTO EKYC (EKYC_ID, USER_ID, ID_IMG_FRONT_URL, ID_IMG_BACK_URL, SELFIE_URL, STATUS, REVIEWED_AT, REVIEWED_BY, CREATED_AT)
+INSERT INTO EKYC (EKYC_ID, USER_ID, IMG_FRONT_URL, IMG_BACK_URL, SELFIE_URL, STATUS, REVIEWED_AT, REVIEWED_BY, CREATED_AT)
 VALUES 
 ('E001', 'U001', 'front1.jpg', 'back1.jpg', 'selfie1.jpg', 'approved', NOW(), 'officer01', NOW()),
 ('E002', 'U002', 'front2.jpg', 'back2.jpg', 'selfie2.jpg', 'pending', NULL, NULL, NOW()),
