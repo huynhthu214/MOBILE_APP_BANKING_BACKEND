@@ -1,153 +1,155 @@
-from db import get_conn
 from datetime import datetime
-
+import math
+from db import get_conn
+from models.location_model import (
+    get_all_locations,
+    get_location_by_id,
+    insert_location,
+    update_location,
+    delete_location
+)
 
 # ============================
-# Sinh BRANCH_ID dạng LOC01, LOC02...
+# Sinh BRANCH_ID dạng LOC01
 # ============================
 def generate_branch_id():
     conn = get_conn()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT BRANCH_ID FROM LOCATION ORDER BY BRANCH_ID DESC LIMIT 1")
-    last = cursor.fetchone()
-
-    if not last:
-        new_id = "LOC01"
-    else:
-        last_num = int(last["BRANCH_ID"].replace("LOC", ""))
-        new_id = f"LOC{last_num + 1:02d}"
-
-    cursor.close()
-    conn.close()
-    return new_id
-
-
-# ============================
-# POST /api/v1/branches
-# ============================
-def create_branch(data):
-    conn = get_conn()
-    cursor = conn.cursor()
-
-    branch_id = generate_branch_id()
-    name = data.get("NAME")
-    address = data.get("ADDRESS")
-    lat = data.get("LAT")
-    lng = data.get("LNG")
-    open_hours = data.get("OPEN_HOURS")
-    created_at = datetime.now()
-
-    sql = """
-        INSERT INTO LOCATION
-        (BRANCH_ID, NAME, ADDRESS, LAT, LNG, OPEN_HOURS, CREATED_AT)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """
-
-    values = (branch_id, name, address, lat, lng, open_hours, created_at)
-
     try:
-        cursor.execute(sql, values)
-        conn.commit()
-        return {"message": "created", "BRANCH_ID": branch_id}
-    except Exception as e:
-        return {"message": "error", "error": str(e)}
+        with conn.cursor() as cur:
+            cur.execute("SELECT BRANCH_ID FROM LOCATION ORDER BY BRANCH_ID DESC LIMIT 1")
+            last = cur.fetchone()
+
+            if not last:
+                return "LOC01"
+
+            last_num = int(last["BRANCH_ID"].replace("LOC", ""))
+            return f"LOC{last_num + 1:02d}"
     finally:
-        cursor.close()
         conn.close()
 
 
 # ============================
-# GET /api/v1/branches
+# Công thức Haversine
 # ============================
-def get_all_branches():
-    conn = get_conn()
-    cursor = conn.cursor()
+def haversine_distance(lat1, lng1, lat2, lng2):
+    R = 6371000
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lng2 - lng1)
 
-    cursor.execute("SELECT * FROM LOCATION ORDER BY BRANCH_ID ASC")
-    data = cursor.fetchall()
+    a = math.sin(d_phi / 2) ** 2 + \
+        math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
 
-    cursor.close()
-    conn.close()
-    return data
-
-
-# ============================
-# GET /api/v1/branches/{id}
-# ============================
-def get_branch_by_id(branch_id):
-    conn = get_conn()
-    cursor = conn.cursor()
-
-    sql = "SELECT * FROM LOCATION WHERE BRANCH_ID = %s"
-    cursor.execute(sql, (branch_id,))
-    data = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-    return data
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 # ============================
-# PUT /api/v1/branches/{id}
+# Tìm chi nhánh gần nhất
 # ============================
-def update_branch(branch_id, data):
-    conn = get_conn()
-    cursor = conn.cursor()
+def find_nearby_branches(lat, lng, radius_m):
+    branches = get_all_locations()
+    result = []
 
-    sql = """
-        UPDATE LOCATION SET
-        NAME = %s,
-        ADDRESS = %s,
-        LAT = %s,
-        LNG = %s,
-        OPEN_HOURS = %s
-        WHERE BRANCH_ID = %s
-    """
+    for b in branches:
+        if not b["LAT"] or not b["LNG"]:
+            continue
+
+        distance = haversine_distance(
+            lat, lng,
+            float(b["LAT"]), float(b["LNG"])
+        )
+
+        if distance <= radius_m:
+            b["DISTANCE_M"] = round(distance, 2)
+            result.append(b)
+
+    result.sort(key=lambda x: x["DISTANCE_M"])
+    return result
+
+
+# ============================
+# Tính route đơn giản
+# ============================
+def calculate_simple_route(branch_id, from_lat, from_lng):
+    branch = get_location_by_id(branch_id)
+
+    if not branch:
+        return None
+
+    distance = haversine_distance(
+        from_lat, from_lng,
+        float(branch["LAT"]), float(branch["LNG"])
+    )
+
+    return {
+        "FROM": {
+            "LAT": from_lat,
+            "LNG": from_lng
+        },
+        "TO": {
+            "BRANCH_ID": branch["BRANCH_ID"],
+            "NAME": branch["NAME"],
+            "LAT": float(branch["LAT"]),
+            "LNG": float(branch["LNG"])
+        },
+        "DISTANCE_M": round(distance, 2),
+        "ESTIMATED_TIME_MIN": round(distance / 300, 1)
+    }
+
+
+# ============================
+# CRUD
+# ============================
+def create_branch(data):
+    branch_id = generate_branch_id()
 
     values = (
+        branch_id,
         data.get("NAME"),
         data.get("ADDRESS"),
         data.get("LAT"),
         data.get("LNG"),
         data.get("OPEN_HOURS"),
-        branch_id
+        datetime.now()
     )
 
     try:
-        cursor.execute(sql, values)
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            return {"message": "not_found"}
-
-        return {"message": "updated"}
+        insert_location(values)
+        return {"message": "created", "BRANCH_ID": branch_id}
     except Exception as e:
         return {"message": "error", "error": str(e)}
-    finally:
-        cursor.close()
-        conn.close()
 
 
-# ============================
-# DELETE /api/v1/branches/{id}
-# ============================
+def get_all_branches():
+    return get_all_locations()
+
+
+def get_branch_by_id_service(branch_id):
+    return get_location_by_id(branch_id)
+
+
+def update_branch(branch_id, data):
+    values = (
+        data.get("NAME"),
+        data.get("ADDRESS"),
+        data.get("LAT"),
+        data.get("LNG"),
+        data.get("OPEN_HOURS")
+    )
+
+    rowcount = update_location(branch_id, values)
+
+    if rowcount == 0:
+        return {"message": "not_found"}
+
+    return {"message": "updated"}
+
+
 def delete_branch(branch_id):
-    conn = get_conn()
-    cursor = conn.cursor()
+    rowcount = delete_location(branch_id)
 
-    sql = "DELETE FROM LOCATION WHERE BRANCH_ID = %s"
+    if rowcount == 0:
+        return {"message": "not_found"}
 
-    try:
-        cursor.execute(sql, (branch_id,))
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            return {"message": "not_found"}
-
-        return {"message": "deleted"}
-    except Exception as e:
-        return {"message": "error", "error": str(e)}
-    finally:
-        cursor.close()
-        conn.close()
+    return {"message": "deleted"}
