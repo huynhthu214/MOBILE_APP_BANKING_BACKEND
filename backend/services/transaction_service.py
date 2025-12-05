@@ -177,3 +177,101 @@ def transfer_confirm_service(transaction_id, otp_code):
     update_transaction_status(transaction_id, "COMPLETED")
 
     return {"status": "success", "message": "Transfer completed"}
+
+#phần Minh Thư thêm nè
+#Tạo giao dịch nạp
+def deposit_create_service(account_id, amount):
+    acc = get_account(account_id)
+    if not acc:
+        return {"status": "error", "message": "Account not found"}
+
+    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID")
+
+    create_transaction({
+        "transaction_id": tx_id,
+        "payment_id": None,
+        "account_id": account_id,
+        "amount": amount,
+        "currency": "VND",
+        "account_type": acc["ACCOUNT_TYPE"],
+        "status": "PENDING",
+        "type": "deposit"
+    })
+
+    # TODO: gọi hàm gửi OTP
+    return {
+        "status": "success",
+        "transaction_id": tx_id,
+        "message": "Deposit created, waiting OTP"
+    }
+
+#Xác nhận OTP cho nạp
+def deposit_confirm_service(transaction_id, otp_code):
+    tx = get_transaction_by_id(transaction_id)
+    if not tx or tx["STATUS"] != "PENDING":
+        return {"status": "error", "message": "Invalid transaction"}
+
+    acc = get_account(tx["ACCOUNT_ID"])
+    otp = get_valid_otp(acc["USER_ID"], otp_code)
+    if not otp:
+        return {"status": "error", "message": "Invalid or expired OTP"}
+
+    mark_otp_used(otp["OTP_ID"])
+
+    update_balance(acc["ACCOUNT_ID"], tx["AMOUNT"], increase=True)
+    update_transaction_status(transaction_id, "COMPLETED")
+
+    return {"status": "success", "message": "Deposit completed"}
+
+#Tạo giao dịch rút 
+def withdraw_create_service(account_id, amount):
+    acc = get_account(account_id)
+    if not acc:
+        return {"status": "error", "message": "Account not found"}
+
+    if acc["BALANCE"] < amount:
+        return {"status": "error", "message": "Insufficient balance"}
+
+    # TODO: check EKYC + hạn mức tại đây
+
+    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID")
+
+    create_transaction({
+        "transaction_id": tx_id,
+        "payment_id": None,
+        "account_id": account_id,
+        "amount": amount,
+        "currency": "VND",
+        "account_type": acc["ACCOUNT_TYPE"],
+        "status": "PENDING",
+        "type": "withdraw"
+    })
+
+    # TODO: gửi OTP
+    return {
+        "status": "success",
+        "transaction_id": tx_id,
+        "message": "Withdraw created, waiting OTP"
+    }
+    
+#Xác nhận OTP cho rút
+def withdraw_confirm_service(transaction_id, otp_code):
+    tx = get_transaction_by_id(transaction_id)
+    if not tx or tx["STATUS"] != "PENDING":
+        return {"status": "error", "message": "Invalid transaction"}
+
+    acc = get_account(tx["ACCOUNT_ID"])
+
+    otp = get_valid_otp(acc["USER_ID"], otp_code)
+    if not otp:
+        return {"status": "error", "message": "Invalid OTP"}
+
+    mark_otp_used(otp["OTP_ID"])
+
+    if acc["BALANCE"] < tx["AMOUNT"]:
+        return {"status": "error", "message": "Insufficient balance"}
+
+    update_balance(acc["ACCOUNT_ID"], tx["AMOUNT"], increase=False)
+    update_transaction_status(transaction_id, "COMPLETED")
+
+    return {"status": "success", "message": "Withdraw completed"}

@@ -67,3 +67,46 @@ def bind_ekyc_to_user(user_id, ekyc_id):
             conn.commit()
     finally:
         conn.close()
+
+def get_pending_ekyc():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM EKYC WHERE STATUS = 'pending'")
+            return cur.fetchall()
+    finally:
+        conn.close()
+        
+def update_ekyc_images(user_id, front, back, selfie):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE EKYC
+                SET 
+                    ID_IMG_FRONT_URL=%s,
+                    ID_IMG_BACK_URL=%s,
+                    SELFIE_URL=%s,
+                    STATUS='pending',
+                    REVIEWED_AT=NULL,
+                    REVIEWED_BY=NULL
+                WHERE USER_ID=%s AND STATUS='rejected'
+            """, (front, back, selfie, user_id))
+            conn.commit()
+            return cur.rowcount
+    finally:
+        conn.close()
+    
+def activate_user_after_ekyc(user_id, ekyc_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE USER
+                SET EKYC_ID=%s,
+                    IS_ACTIVE=true
+                WHERE USER_ID=%s
+            """, (ekyc_id, user_id))
+            conn.commit()
+    finally:
+        conn.close()
