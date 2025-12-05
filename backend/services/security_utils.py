@@ -1,9 +1,7 @@
-# auth/utils.py
+
 import bcrypt
 import jwt
 import datetime
-import random
-import uuid
 from db import get_conn
 from config import JWT_SECRET, JWT_ALGORITHM, ACCESS_EXPIRE_MIN, REFRESH_EXPIRE_DAYS
 
@@ -84,52 +82,20 @@ def is_blacklisted(token):
     finally:
         conn.close()
 
-# ----- OTP helpers (OTP_ID kept as varchar per your schema) -----
-def generate_otp_code(length=6):
-    digits = ''.join(str(random.randint(0,9)) for _ in range(length))
-    return digits
 
-def gen_otp_id():
-    # generate 10-char hex id, fits varchar(10)
-    return uuid.uuid4().hex[:10]
-
-def create_otp(user_id, purpose='transaction', ttl_seconds=300):
-    code = generate_otp_code()
-    otp_id = gen_otp_id()
-    now = datetime.datetime.utcnow()
-    expires = now + datetime.timedelta(seconds=ttl_seconds)
-    conn = get_conn()
+def decode_access_token(token):
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO OTP (OTP_ID, USER_ID, CODE, PURPOSE, CREATED_AT, EXPIRES_AT, IS_USED)
-                VALUES (%s,%s,%s,%s,%s,%s,0)
-            """, (otp_id, user_id, code, purpose, now, expires))
-        conn.commit()
-    finally:
-        conn.close()
-    # in dev return code; in prod send SMS/email and DO NOT return
-    return otp_id, code
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
 
-def verify_otp(user_id, code, purpose='transaction'):
-    now = datetime.datetime.utcnow()
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT * FROM OTP
-                WHERE USER_ID=%s AND CODE=%s AND PURPOSE=%s AND IS_USED=0
-                ORDER BY CREATED_AT DESC LIMIT 1
-            """, (user_id, code, purpose))
-            row = cur.fetchone()
-            if not row:
-                return False, "not_found"
-            # EXPIRES_AT in your schema might be string or datetime; we assume datetime
-            if row.get('EXPIRES_AT') and row['EXPIRES_AT'] < now:
-                return False, "expired"
-            # mark used
-            cur.execute("UPDATE OTP SET IS_USED=1 WHERE OTP_ID=%s", (row['OTP_ID'],))
-        conn.commit()
-        return True, "ok"
-    finally:
-        conn.close()
+        if payload.get("type") != "access":
+            return None, "Invalid token type"
+
+        if is_blacklisted(token):
+            return None, "Token is blacklisted"
+
+        return payload, None
+
+    except jwt.ExpiredSignatureError:
+        return None, "Token expired"
+    except Exception:
+        return None, "Invalid token"

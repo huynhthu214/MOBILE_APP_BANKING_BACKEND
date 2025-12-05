@@ -42,3 +42,15 @@ def list_otps():
         "status": "success",
         "data": OTPModel.list_all()
     }
+
+
+def create_otp(user_id, purpose="transaction"):
+    res = send_otp(user_id, purpose)
+    return res["otp_id"], res["code"]
+
+
+def verify_otp_util(user_id, code, purpose="transaction"):
+    res = verify_otp(user_id, code, purpose)
+    if res["status"] == "success":
+        return True, res["message"]
+    return False, res["message"]

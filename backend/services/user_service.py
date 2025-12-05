@@ -1,26 +1,16 @@
-# backend/services/user_service.py
+from models.user_model import (
+    create_user as create_user_db,
+    get_user_by_id,
+    get_user_by_email,
+    update_user as update_user_db,
+    search_users as search_users_db
+)
 from db import get_conn
-from werkzeug.security import generate_password_hash
-import datetime
 
-# --- Helpers ---
-def fetch_user_by_email(email):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM USER WHERE EMAIL=%s LIMIT 1", (email,))
-            return cur.fetchone()
-    finally:
-        conn.close()
 
-def fetch_user_by_id(user_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM USER WHERE USER_ID=%s LIMIT 1", (user_id,))
-            return cur.fetchone()
-    finally:
-        conn.close()
+# =========================
+#  HELPERS
+# =========================
 
 def generate_next_user_id():
     conn = get_conn()
@@ -52,27 +42,31 @@ def create_user(data):
     role = data.get('ROLE', 'user')
 
     if not all([full_name, email, password]):
-        return {"status":"error","message":"FULL_NAME, EMAIL, PASSWORD required","status_code":400}
+        return {
+            "status":"error",
+            "message":"FULL_NAME, EMAIL, PASSWORD required",
+            "status_code":400
+        }
 
-    if fetch_user_by_email(email):
-        return {"status":"error","message":"email already exists","status_code":400}
+    if get_user_by_email(email):
+        return {
+            "status":"error",
+            "message":"email already exists",
+            "status_code":400
+        }
 
     user_id = generate_next_user_id()
-    hashed_pwd = generate_password_hash(password)
+    plain_pwd = password
 
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO USER (USER_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, IS_ACTIVE, PASSWORD_HASH)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                user_id, full_name, email, phone,
-                role, datetime.datetime.now(), True, hashed_pwd
-            ))
-            conn.commit()
-    finally:
-        conn.close()
+    create_user_db({
+        "USER_ID": user_id,
+        "FULL_NAME": full_name,
+        "EMAIL": email,
+        "PHONE": phone,
+        "ROLE": role,
+        "PASSWORD_HASH": hashed_pwd,
+        "IS_ACTIVE": 1
+    })
 
     return {
         "status": "success",
@@ -83,74 +77,92 @@ def create_user(data):
 
 
 def get_user_detail(user_id):
-    user = fetch_user_by_id(user_id)
+    user = get_user_by_id(user_id)
+
     if not user:
-        return {"status":"error","message":"User not found","status_code":404}
+        return {
+            "status":"error",
+            "message":"User not found",
+            "status_code":404
+        }
 
     user.pop("PASSWORD_HASH", None)
     return {"status":"success","data": user}
 
 
 def update_user_info(user_id, data):
-    user = fetch_user_by_id(user_id)
+    user = get_user_by_id(user_id)
+
     if not user:
-        return {"status":"error","message":"User not found","status_code":404}
+        return {
+            "status":"error",
+            "message":"User not found",
+            "status_code":404
+        }
 
-    full_name = data.get("FULL_NAME", user["FULL_NAME"])
-    phone = data.get("PHONE", user["PHONE"])
-    role = data.get("ROLE", user["ROLE"])
-    is_active = data.get("IS_ACTIVE", user["IS_ACTIVE"])
-
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE USER 
-                SET FULL_NAME=%s, PHONE=%s, ROLE=%s, IS_ACTIVE=%s
-                WHERE USER_ID=%s
-            """, (full_name, phone, role, is_active, user_id))
-            conn.commit()
-    finally:
-        conn.close()
+    update_user_db(user_id, {
+        "FULL_NAME": data.get("FULL_NAME", user["FULL_NAME"]),
+        "PHONE": data.get("PHONE", user["PHONE"]),
+        "ROLE": data.get("ROLE", user["ROLE"]),
+        "IS_ACTIVE": data.get("IS_ACTIVE", user["IS_ACTIVE"])
+    })
 
     return {"status":"success","message":"User updated"}
 
 
 def list_users(keyword=""):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT * FROM USER
-                WHERE FULL_NAME LIKE %s OR EMAIL LIKE %s
-                ORDER BY CREATED_AT DESC
-            """, (f"%{keyword}%", f"%{keyword}%"))
-            users = cur.fetchall()
-    finally:
-        conn.close()
+    users = search_users_db(keyword)
 
     for u in users:
         u.pop("PASSWORD_HASH", None)
 
     return {"status":"success","data": users}
 
+
 def search_users(keyword):
+    return search_users_db(keyword)
+
+
+# =========================
+#  SERVICE: GET CURRENT USER (ME)
+# =========================
+
+def get_me(user_id):
     conn = get_conn()
-    cursor = conn.cursor()
+    try:
+        with conn.cursor() as cur:
 
-    sql = """
-        SELECT USER_ID, FULL_NAME, EMAIL, PHONE, ROLE, IS_ACTIVE
-        FROM USER
-        WHERE FULL_NAME LIKE %s
-           OR EMAIL LIKE %s
-           OR PHONE LIKE %s
-    """
+            # 1. Lấy user
+            cur.execute("SELECT * FROM USER WHERE USER_ID=%s LIMIT 1", (user_id,))
+            user = cur.fetchone()
 
-    key = f"%{keyword}%"
-    cursor.execute(sql, (key, key, key))
-    data = cursor.fetchall()
+            if not user:
+                return None, "User not found"
 
-    cursor.close()
-    conn.close()
+            # 2. Lấy EKYC (qua USER.EKYC_ID)
+            ekyc = None
+            if user.get("EKYC_ID"):
+                cur.execute(
+                    "SELECT * FROM EKYC WHERE EKYC_ID=%s LIMIT 1",
+                    (user["EKYC_ID"],)
+                )
+                ekyc = cur.fetchone()
 
-    return data
+            # 3. Lấy danh sách tài khoản
+            cur.execute(
+                "SELECT * FROM ACCOUNT WHERE USER_ID=%s ORDER BY CREATED_AT DESC",
+                (user_id,)
+            )
+            accounts = cur.fetchall()
+
+            # 4. Xoá password trước khi trả về
+            user.pop("PASSWORD_HASH", None)
+
+            return {
+                "user": user,
+                "ekyc": ekyc,
+                "accounts": accounts
+            }, None
+
+    finally:
+        conn.close()
