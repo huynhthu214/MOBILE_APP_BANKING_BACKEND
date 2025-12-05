@@ -1,6 +1,6 @@
 /*==============================================================*/
 /* DBMS name:      MySQL 5.0                                    */
-/* Created on:     30/11/2025 7:43:53 PM                        */
+/* Created on:     05/12/2025 9:15:38 PM                        */
 /*==============================================================*/
 
 
@@ -158,8 +158,8 @@ create table EKYC
 (
    EKYC_ID              varchar(10) not null  comment '',
    USER_ID              varchar(10)  comment '',
-   ID_IMG_FRONT_URL     varchar(10)  comment '',
-   ID_IMG_BACK_URL      varchar(10)  comment '',
+   IMG_FRONT_URL        text  comment '',
+   IMG_BACK_URL         text  comment '',
    SELFIE_URL           text  comment '',
    STATUS               text  comment '',
    REVIEWED_AT          varchar(30)  comment '',
@@ -263,7 +263,7 @@ create table USER
    ROLE                 text  comment '',
    CREATED_AT           datetime  comment '',
    IS_ACTIVE            bool  comment '',
-   PASSWORD_HASH        text  comment '',
+   PASSWORD             text  comment '',
    primary key (USER_ID)
 );
 

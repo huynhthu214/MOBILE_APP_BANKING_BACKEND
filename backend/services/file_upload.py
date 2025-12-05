@@ -1,11 +1,29 @@
-import os
-from werkzeug.utils import secure_filename
+import os, uuid, base64
 
 UPLOAD_FOLDER = "uploads"
 
-def save_file(file):
+def save_file_base64(base64_str):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
-    return filepath
+
+    try:
+        file_data = base64.b64decode(base64_str)
+    except Exception:
+        return None
+
+    filename = f"{uuid.uuid4().hex}.jpg"
+    path = os.path.join(UPLOAD_FOLDER, filename)
+
+    with open(path, "wb") as f:
+        f.write(file_data)
+
+    return f"/uploads/{filename}"
+
+
+def delete_file(filename):
+    path = os.path.join(UPLOAD_FOLDER, filename)
+
+    if not os.path.exists(path):
+        return False
+
+    os.remove(path)
+    return True

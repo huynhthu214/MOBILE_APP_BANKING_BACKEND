@@ -1,4 +1,5 @@
 from models.account_model import AccountModel, SavingDetailModel, MortageDetailModel
+from models.transaction_model import get_transactions
 from datetime import datetime, timedelta
 # ===== ACCOUNT =====
 def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status="active", account_number=None):
@@ -28,6 +29,57 @@ def get_account(account_id):
 def update_account(account_id, **kwargs):
     AccountModel.update(account_id, **kwargs)
     return {"status": "success", "message": "Account updated"}
+
+def get_account_summary(account_id):
+    acc = AccountModel.get_by_id(account_id)
+    if not acc:
+        return {"status": "error", "message": "Account not found"}
+
+    acc_type = acc["ACCOUNT_TYPE"].lower()
+
+    # CHECKING
+    if acc_type == "checking":
+        txs = get_transactions(account_id)
+        last_10 = txs[:10] if len(txs) >= 10 else txs
+
+        return {
+            "status": "success",
+            "type": "checking",
+            "balance": acc["BALANCE"],
+            "last_transactions": last_10
+        }
+
+    # SAVING
+    if acc_type == "saving":
+        saving = SavingDetailModel.get_by_account(account_id)
+        if not saving:
+            return {"status": "error", "message": "Saving detail not found"}
+
+        monthly_interest = saving["PRINCIPAL_AMOUNT"] * saving["INTEREST_RATE"] / 12
+
+        return {
+            "status": "success",
+            "type": "saving",
+            "balance": acc["BALANCE"],
+            "interest_rate": saving["INTEREST_RATE"],
+            "monthly_interest": monthly_interest
+        }
+
+    # MORTGAGE
+    if acc_type == "mortgage":
+        mort = MortageDetailModel.get_by_account(account_id)
+        if not mort:
+            return {"status": "error", "message": "Mortgage detail not found"}
+
+        return {
+            "status": "success",
+            "type": "mortgage",
+            "remaining_balance": mort["REMAINING_BALANCE"],
+            "next_payment_date": mort["NEXT_PAYMENT_DATE"]
+        }
+
+    return {"status": "error", "message": "Unsupported account type"}
+
 
 # ===== SAVING DETAIL =====
 def create_saving_detail(account_id, principal_amount, interest_rate, term_months, start_date=None, maturity_date=None):
