@@ -2,10 +2,10 @@ from flask import Blueprint, request, jsonify
 from services.auth_service import (
     login,
     logout,
-    refresh,
-    send_otp,
-    verify_otp
+    refresh
 )
+from services.user_service import get_me
+from services.security_utils import decode_access_token
 
 bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -31,3 +31,35 @@ def refresh_route():
     result = refresh(data)
     return jsonify(result), result.get("status_code", 200)
 
+@bp.route('/me', methods=['GET'])
+def me_route():
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "status": "error",
+            "message": "Missing access token"
+        }), 401
+
+    token = auth_header.split(' ')[1]
+
+    payload, err = decode_access_token(token)
+    if err:
+        return jsonify({
+            "status": "error",
+            "message": err
+        }), 401
+
+    user_id = payload.get("sub")
+
+    data, err = get_me(user_id)
+    if err:
+        return jsonify({
+            "status": "error",
+            "message": err
+        }), 404
+
+    return jsonify({
+        "status": "success",
+        "data": data
+    })

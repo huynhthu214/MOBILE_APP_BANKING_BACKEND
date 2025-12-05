@@ -1,41 +1,20 @@
-from db import get_conn
-from services.utils import (
-    verify_password, create_access_token, create_refresh_token,
-    store_refresh_token, revoke_refresh_token, blacklist_access_token,
-    create_otp, verify_otp as verify_otp_util
+from models.user_model import get_user_by_id, get_user_by_email
+from services.security_utils import (
+    create_access_token,
+    create_refresh_token,
+    store_refresh_token,
+    revoke_refresh_token,
+    blacklist_access_token
 )
-
+from services.otp_service import create_otp, verify_otp_util
+from db import get_conn
 import jwt
 from datetime import datetime, timedelta
 from config import JWT_SECRET, JWT_ALGORITHM
 
 
 # ========================
-# HELPERS (AUTH ONLY)
-# ========================
-
-def fetch_user_by_email(email):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM USER WHERE EMAIL=%s LIMIT 1", (email,))
-            return cur.fetchone()
-    finally:
-        conn.close()
-
-
-def fetch_user_by_id(user_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM USER WHERE USER_ID=%s LIMIT 1", (user_id,))
-            return cur.fetchone()
-    finally:
-        conn.close()
-
-
-# ========================
-# SERVICES
+# AUTH SERVICES
 # ========================
 
 def login(data):
@@ -46,29 +25,21 @@ def login(data):
     password = data.get('password')
     require_otp = data.get('require_otp', False)
 
-    # --- Thêm log debug ở đây ---
-    print("EMAIL:", email)
-    user = fetch_user_by_email(email)
-    print("USER:", user)
-    print("HASH:", user.get('PASSWORD_HASH') if user else None)
-    # -----------------------------
-    
     if not email or not password:
         return {"status":"error","message":"email and password required","status_code":400}
-    
-    user = fetch_user_by_email(email)
+
+    user = get_user_by_email(email)
     if not user:
         return {"status":"error","message":"invalid credentials","status_code":401}
 
     if not user.get('IS_ACTIVE', 1):
         return {"status":"error","message":"account inactive","status_code":403}
 
-    # if not verify_password(password, user.get('PASSWORD_HASH')):
-    #     return {"status":"error","message":"invalid credentials","status_code":401}
-    
+    # Nếu bạn dùng bcrypt thì đổi lại verify_password
     if password != user.get('PASSWORD_HASH'):
         return {"status":"error","message":"invalid credentials","status_code":401}
 
+    # Login có OTP
     if require_otp:
         otp_id, code = create_otp(user['USER_ID'], purpose='login')
         return {
@@ -85,18 +56,20 @@ def login(data):
     store_refresh_token(user['USER_ID'], refresh_token, expires)
 
     safe_user = {k: v for k, v in user.items() if k != 'PASSWORD_HASH'}
+
     return {
         "status":"success",
         "data":{
-            "access_token":access_token,
-            "refresh_token":refresh_token,
-            "user":safe_user
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": safe_user
         }
     }
 
 
 def logout(data, auth_header=None):
     refresh_token = data.get('refresh_token')
+
     if not refresh_token:
         return {"status":"error","message":"refresh_token required","status_code":400}
     
@@ -108,22 +81,10 @@ def logout(data, auth_header=None):
 
     return {"status":"success","message":"logged out"}
 
-def create_refresh_token(user_id):
-    # chuyển U0001 → U001
-    short_id = "U" + str(int(user_id[1:])).zfill(3)
-    
-    payload = {
-        "sub": short_id,
-        "type": "refresh",
-        "exp": datetime.utcnow() + timedelta(days=7)
-    }
-    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    expires = datetime.utcnow() + timedelta(days=7)
-    return token, expires
-
 
 def refresh(data):
     refresh_token = data.get('refresh_token')
+
     if not refresh_token:
         return {"status":"error","message":"refresh_token required","status_code":400}
 
@@ -135,6 +96,7 @@ def refresh(data):
                 (refresh_token,)
             )
             row = cur.fetchone()
+
             if not row:
                 return {
                     "status":"error",
@@ -159,7 +121,7 @@ def refresh(data):
     new_refresh, new_expires = create_refresh_token(user_id)
     store_refresh_token(user_id, new_refresh, new_expires)
 
-    user = fetch_user_by_id(user_id)
+    user = get_user_by_id(user_id)
     role = user.get('ROLE') if user else None
 
     new_access = create_access_token(user_id, role)
@@ -173,16 +135,25 @@ def refresh(data):
     }
 
 
+# ========================
+# OTP
+# ========================
+
 def send_otp(data):
     user_id = data.get('USER_ID')
     purpose = data.get('PURPOSE', 'transaction')
+
     if not user_id:
         return {"status":"error","message":"USER_ID required","status_code":400}
 
     otp_id, code = create_otp(user_id, purpose=purpose)
+
     return {
         "status":"success",
-        "data":{"otp_id": otp_id, "otp_code_dev": code}
+        "data":{
+            "otp_id": otp_id,
+            "otp_code_dev": code
+        }
     }
 
 
@@ -195,6 +166,7 @@ def verify_otp(data):
         return {"status":"error","message":"USER_ID and CODE required","status_code":400}
 
     ok, msg = verify_otp_util(user_id, code, purpose=purpose)
+
     if not ok:
         return {"status":"error","message": msg,"status_code":400}
 

@@ -5,8 +5,9 @@ def create_user(data):
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO USER (USER_ID, FULL_NAME, EMAIL, PHONE, ROLE, PASSWORD_HASH, IS_ACTIVE)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO USER 
+                (USER_ID, FULL_NAME, EMAIL, PHONE, ROLE, PASSWORD_HASH, IS_ACTIVE, CREATED_AT)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
             """, (
                 data["USER_ID"],
                 data["FULL_NAME"],
@@ -14,7 +15,7 @@ def create_user(data):
                 data.get("PHONE"),
                 data.get("ROLE", "user"),
                 data["PASSWORD_HASH"],
-                1
+                data.get("IS_ACTIVE", 1)
             ))
             conn.commit()
     finally:
@@ -26,6 +27,16 @@ def get_user_by_id(user_id):
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM USER WHERE USER_ID=%s", (user_id,))
+            return cur.fetchone()
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM USER WHERE EMAIL=%s", (email,))
             return cur.fetchone()
     finally:
         conn.close()

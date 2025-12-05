@@ -7,7 +7,6 @@ from models.ekyc_model import (
 )
 import datetime
 
-
 def create_ekyc(user_id, data):
     if get_ekyc_by_user(user_id):
         return {"status":"error","message":"EKYC already exists","status_code":400}
