@@ -1,0 +1,61 @@
+{
+  "info": {
+    "name": "Utility Payment API",
+    "_postman_id": "12345678-utility-payment-api",
+    "description": "Collection for testing Utility Payment in Banking Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get List of Utility Payments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/utility",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "utility"]
+        }
+      }
+    },
+    {
+      "name": "Get Utility Payment Detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/utility/{{utility_id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "utility", "{{utility_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Utility Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"T008\",\n  \"provider_code\": \"EVN\",\n  \"reference_code_1\": \"KH0012456\",\n  \"reference_code_2\": \"CT20250089\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/utility",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "utility"]
+        }
+      }
+    }
+  ]
+}
