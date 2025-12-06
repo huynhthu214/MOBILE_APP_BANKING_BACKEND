@@ -6,22 +6,19 @@ from datetime import datetime
 # ============================================================
 # GET ALL / FILTER
 # ============================================================
-def get_transactions(keyword=""):
+def get_transactions(account_id=None):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            sql = "SELECT * FROM TRANSACTION"
-            if keyword:
-                sql += """
-                    WHERE ACCOUNT_ID LIKE %s 
-                    OR STATUS LIKE %s 
-                    OR TYPE LIKE %s 
-                    OR DEST_ACC_NUM LIKE %s
-                """
-                kw = f"%{keyword}%"
-                cur.execute(sql, (kw, kw, kw, kw))
+            if account_id:
+                cur.execute("""
+                    SELECT * FROM `TRANSACTION`
+                    WHERE ACCOUNT_ID = %s
+                    ORDER BY CREATED_AT DESC
+                """, (account_id,))
             else:
-                cur.execute(sql)
+                cur.execute("SELECT * FROM `TRANSACTION` ORDER BY CREATED_AT DESC")
+
             return cur.fetchall()
     finally:
         conn.close()
@@ -34,49 +31,62 @@ def get_transaction_by_id(transaction_id):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT * FROM TRANSACTION WHERE TRANSACTION_ID=%s",
-                (transaction_id,)
-            )
+            cur.execute("""
+                SELECT * FROM `TRANSACTION`
+                WHERE TRANSACTION_ID = %s
+            """, (transaction_id,))
             return cur.fetchone()
     finally:
         conn.close()
 
 
 # ============================================================
-# CREATE – Deposit / Withdraw / Transfer
+# CREATE TRANSACTION (deposit / withdraw / transfer)
 # ============================================================
-def create_transaction(data):
-    """
-    data = {
-        'TRANSACTION_ID', 'PAYMENT_ID', 'ACCOUNT_ID', 'AMOUNT',
-        'CURRENCY', 'ACCOUNT_TYPE', 'STATUS', 'DEST_ACC_NUM',
-        'DEST_ACC_NAME', 'DEST_BANK_CODE', 'TYPE'
-    }
-    """
+def create_transaction(
+    transaction_id,
+    account_id,
+    amount,
+    tx_type,
+    status="PENDING",
+    dest_acc_num=None,
+    dest_acc_name=None,
+    dest_bank_code=None,
+    currency="VND",
+    account_type="checking",
+    payment_id=None
+):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO TRANSACTION (
-                    TRANSACTION_ID, PAYMENT_ID, ACCOUNT_ID, AMOUNT,
-                    CURRENCY, ACCOUNT_TYPE, STATUS, CREATED_AT,
-                    COMPLETE_AT, DEST_ACC_NUM, DEST_ACC_NAME,
-                    DEST_BANK_CODE, TYPE
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NULL, %s, %s, %s, %s)
+                INSERT INTO `TRANSACTION` (
+                    TRANSACTION_ID,
+                    PAYMENT_ID,
+                    ACCOUNT_ID,
+                    AMOUNT,
+                    CURRENCY,
+                    ACCOUNT_TYPE,
+                    STATUS,
+                    CREATED_AT,
+                    COMPLETE_AT,
+                    DEST_ACC_NUM,
+                    DEST_ACC_NAME,
+                    DEST_BANK_CODE,
+                    TYPE
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NULL, %s, %s, %s, %s)
             """, (
-                data["transaction_id"],
-                data.get("payment_id"),
-                data["account_id"],
-                data["amount"],
-                data.get("currency", "VND"),
-                data.get("account_type", "checking"),
-                data.get("status", "PENDING"),
-                data.get("dest_acc_num"),
-                data.get("dest_acc_name"),
-                data.get("dest_bank_code"),
-                data["type"]
+                transaction_id,
+                payment_id,
+                account_id,
+                amount,
+                currency,
+                account_type,
+                status,
+                dest_acc_num,
+                dest_acc_name,
+                dest_bank_code,
+                tx_type
             ))
             conn.commit()
     finally:
@@ -84,16 +94,17 @@ def create_transaction(data):
 
 
 # ============================================================
-# UPDATE STATUS (SUCCESS / FAILED)
+# UPDATE STATUS
 # ============================================================
 def update_transaction_status(transaction_id, status):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                UPDATE TRANSACTION 
-                SET STATUS=%s, COMPLETE_AT=NOW()
-                WHERE TRANSACTION_ID=%s
+                UPDATE `TRANSACTION`
+                SET STATUS = %s,
+                    COMPLETE_AT = NOW()
+                WHERE TRANSACTION_ID = %s
             """, (status, transaction_id))
             conn.commit()
     finally:
@@ -101,23 +112,23 @@ def update_transaction_status(transaction_id, status):
 
 
 # ============================================================
-# ACCOUNT – SUPPORT
+# ACCOUNT SUPPORT
 # ============================================================
 def get_account(account_id):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID=%s", (account_id,))
+            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s", (account_id,))
             return cur.fetchone()
     finally:
         conn.close()
 
 
-def get_account_by_number(acc_number):
+def get_account_by_number(account_number):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_NUMBER=%s", (acc_number,))
+            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_NUMBER = %s", (account_number,))
             return cur.fetchone()
     finally:
         conn.close()
@@ -129,33 +140,37 @@ def update_balance(account_id, amount, increase=True):
         with conn.cursor() as cur:
             if increase:
                 cur.execute("""
-                    UPDATE ACCOUNT 
-                    SET BALANCE = BALANCE + %s 
-                    WHERE ACCOUNT_ID=%s
+                    UPDATE ACCOUNT
+                    SET BALANCE = BALANCE + %s
+                    WHERE ACCOUNT_ID = %s
                 """, (amount, account_id))
             else:
                 cur.execute("""
-                    UPDATE ACCOUNT 
-                    SET BALANCE = BALANCE - %s 
-                    WHERE ACCOUNT_ID=%s
+                    UPDATE ACCOUNT
+                    SET BALANCE = BALANCE - %s
+                    WHERE ACCOUNT_ID = %s
                 """, (amount, account_id))
+
             conn.commit()
     finally:
         conn.close()
 
 
 # ============================================================
-# OTP – verify
+# OTP SUPPORT
 # ============================================================
 def get_valid_otp(user_id, code):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            now = datetime.now()
             cur.execute("""
-                SELECT * FROM OTP
-                WHERE USER_ID=%s AND CODE=%s AND IS_USED=0 AND EXPIRES_AT > %s
-            """, (user_id, code, now))
+                SELECT *
+                FROM OTP
+                WHERE USER_ID = %s
+                  AND CODE = %s
+                  AND IS_USED = 0
+                  AND EXPIRES_AT > NOW()
+            """, (user_id, code))
             return cur.fetchone()
     finally:
         conn.close()
@@ -165,7 +180,7 @@ def mark_otp_used(otp_id):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("UPDATE OTP SET IS_USED=1 WHERE OTP_ID=%s", (otp_id,))
+            cur.execute("UPDATE OTP SET IS_USED = 1 WHERE OTP_ID = %s", (otp_id,))
             conn.commit()
     finally:
         conn.close()
