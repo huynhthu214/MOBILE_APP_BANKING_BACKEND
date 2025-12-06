@@ -1,7 +1,4 @@
-# services/transaction_service.py
-
 from db import get_conn
-from datetime import datetime
 from models.transaction_model import (
     get_transactions,
     get_transaction_by_id,
@@ -13,7 +10,6 @@ from models.transaction_model import (
     get_valid_otp,
     mark_otp_used,
 )
-
 
 # ============================================================
 # ID GENERATOR
@@ -275,3 +271,4 @@ def withdraw_confirm_service(transaction_id, otp_code):
     update_transaction_status(transaction_id, "COMPLETED")
 
     return {"status": "success", "message": "Withdraw completed"}
+

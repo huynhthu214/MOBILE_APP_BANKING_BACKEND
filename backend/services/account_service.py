@@ -1,5 +1,6 @@
 from models.account_model import AccountModel, SavingDetailModel, MortageDetailModel
-from models.transaction_model import get_transactions
+from models.transaction_model import get_transactions, create_transaction
+from services.transaction_service import generate_sequential_id
 from datetime import datetime, timedelta
 # ===== ACCOUNT =====
 def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status="active", account_number=None):
@@ -96,6 +97,65 @@ def get_saving_detail(account_id):
     data = SavingDetailModel.get_by_account(account_id)
     return {"status": "success", "data": data}
 
+def update_saving_interest(account_id, new_rate):
+    saving = SavingDetailModel.get_by_account(account_id)
+    if not saving:
+        return {"status":"error", "message":"Saving detail not found"}
+    
+    SavingDetailModel.update_interest(saving["SAVING_ACC_ID"], new_rate)
+    # Optional: update luôn trong ACCOUNT
+    AccountModel.update(account_id, INTEREST_RATE=new_rate)
+    return {"status":"success", "SAVING_ACC_ID": saving["SAVING_ACC_ID"], "new_rate": new_rate}
+
+def close_saving(account_id):
+    saving = SavingDetailModel.get_by_account(account_id)
+    if not saving:
+        return {"status":"error","message":"Saving detail not found"}
+    
+    principal = saving["PRINCIPAL_AMOUNT"]
+    rate = saving["INTEREST_RATE"]
+    term = saving["TERM_MONTHS"]
+
+    # tính lãi đơn giản
+    interest = principal * (rate/100) * (term/12)
+    total_amount = principal + interest
+
+    # cập nhật balance account
+    acc = AccountModel.get_by_id(account_id)
+    new_balance = acc["BALANCE"] + total_amount
+    AccountModel.update(account_id, BALANCE=new_balance)
+
+    # đóng saving
+    SavingDetailModel.close_saving(saving["SAVING_ACC_ID"])
+
+    return {"status":"success", "total_paid": total_amount, "principal": principal, "interest": interest}
+
+def get_saving_profit(account_id):
+    acc = AccountModel.get_by_id(account_id)
+    if not acc or acc["ACCOUNT_TYPE"].lower() != "saving":
+        return {"status": "error", "message": "Saving account not found"}
+
+    saving = SavingDetailModel.get_by_account(account_id)
+    if not saving:
+        return {"status": "error", "message": "Saving detail not found"}
+
+    principal = saving["PRINCIPAL_AMOUNT"]
+    rate = saving["INTEREST_RATE"]
+    term = saving["TERM_MONTHS"]
+
+    total_interest = principal * (rate / 100) * (term / 12)
+    total_profit = principal + total_interest
+
+    return {
+        "status": "success",
+        "principal": principal,
+        "interest_rate": rate,
+        "term_months": term,
+        "total_interest": round(total_interest, 2),
+        "total_profit": round(total_profit, 2),
+        "maturity_date": saving["MATURITY_DATE"]
+    }
+    
 # ===== MORTAGE DETAIL =====
 def create_mortage_detail(account_id, total_loan_amount, remaining_balance, paymen_frequency,
                           payment_amount, next_payment_date, loan_end_date):
@@ -109,3 +169,79 @@ def create_mortage_detail(account_id, total_loan_amount, remaining_balance, paym
 def get_mortage_detail(account_id):
     data = MortageDetailModel.get_by_account(account_id)
     return {"status": "success", "data": data}
+
+def pay_mortgage(account_id, amount):
+    mortgage = MortageDetailModel.get_by_account(account_id)
+    if not mortgage:
+        return {"status":"error","message":"Mortgage detail not found"}
+
+    remaining = mortgage["REMAINING_BALANCE"]
+    if amount > remaining:
+        return {"status":"error","message":"Amount exceeds remaining balance"}
+
+    new_remaining = remaining - amount
+    MortageDetailModel.update_remaining(mortgage["MORTAGE_ACC_ID"], new_remaining)
+
+    # Tạo transaction theo chuẩn transaction_model
+    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID")
+    acc = AccountModel.get_by_id(account_id)
+
+    tx_data = {
+        "transaction_id": tx_id,
+        "payment_id": None,
+        "account_id": account_id,
+        "amount": amount,
+        "currency": "VND",
+        "account_type": acc["ACCOUNT_TYPE"],
+        "status": "COMPLETED",
+        "type": "MORTGAGE_PAYMENT"
+    }
+
+    create_transaction(tx_data)
+
+    return {"status":"success", "mortgage_acc_id": mortgage["MORTAGE_ACC_ID"], "remaining_balance": new_remaining, "transaction_id": tx_id}
+
+def get_mortgage_schedule(account_id):
+    acc = AccountModel.get_by_id(account_id)
+    if not acc or acc["ACCOUNT_TYPE"].lower() != "mortgage":
+        return {"status":"error","message":"Mortgage account not found"}
+
+    mort = MortageDetailModel.get_by_account(account_id)
+    if not mort:
+        return {"status":"error","message":"Mortgage detail not found"}
+
+    remaining = mort["REMAINING_BALANCE"]
+    payment_amount = mort["PAYMENT_AMOUNT"]
+    frequency = mort["PAYMEN_FREQUENCY"]
+    next_date = mort["NEXT_PAYMENT_DATE"]
+
+    schedule = []
+    current_balance = remaining
+    current_date = next_date
+    i = 1
+
+    while current_balance > 0:
+        pay = min(payment_amount, current_balance)
+        current_balance -= pay
+
+        schedule.append({
+            "period": i,
+            "payment_date": current_date,
+            "amount": pay,
+            "remaining_balance": round(current_balance, 2)
+        })
+
+        if frequency == "monthly":
+            current_date = current_date + timedelta(days=30)
+        elif frequency == "biweekly":
+            current_date = current_date + timedelta(days=14)
+        else:
+            break
+
+        i += 1
+
+    return {
+        "status": "success",
+        "account_id": account_id,
+        "schedule": schedule
+    }

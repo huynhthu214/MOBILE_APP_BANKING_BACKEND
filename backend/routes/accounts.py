@@ -3,6 +3,9 @@ from services.account_service import (
     create_account, list_accounts, get_account, update_account,
     create_saving_detail, get_saving_detail,
     create_mortage_detail, get_mortage_detail,
+    update_saving_interest,
+    close_saving,
+    pay_mortgage,
     get_account_summary
 )
 
@@ -42,6 +45,24 @@ def route_create_saving_detail(account_id):
 def route_get_saving_detail(account_id):
     return jsonify(get_saving_detail(account_id))
 
+@bp.route("/saving/<account_id>/profit", methods=["GET"])
+def route_get_saving_profit(account_id):
+    from services.account_service import get_saving_profit
+    return jsonify(get_saving_profit(account_id))
+
+# ===== UPDATE SAVING INTEREST =====
+@bp.route("/<account_id>/saving/interest", methods=["PUT"])
+def route_update_saving_interest(account_id):
+    data = request.json
+    new_rate = data.get("interest_rate")
+    if new_rate is None:
+        return jsonify({"status":"error","message":"Missing interest_rate"}), 400
+    return jsonify(update_saving_interest(account_id, new_rate))
+
+@bp.route("/<account_id>/saving/close", methods=["POST"])
+def route_close_saving(account_id):
+    return jsonify(close_saving(account_id))
+
 # ===== MORTAGE DETAIL =====
 @bp.route("/<account_id>/mortage-detail", methods=["POST"])
 def route_create_mortage_detail(account_id):
@@ -51,3 +72,16 @@ def route_create_mortage_detail(account_id):
 @bp.route("/<account_id>/mortage-detail", methods=["GET"])
 def route_get_mortage_detail(account_id):
     return jsonify(get_mortage_detail(account_id))
+
+@bp.route("/<account_id>/mortgage/pay", methods=["POST"])
+def route_pay_mortgage(account_id):
+    data = request.json
+    amount = data.get("amount")
+    if amount is None:
+        return jsonify({"status":"error","message":"Missing amount"}), 400
+    return jsonify(pay_mortgage(account_id, amount))
+
+@bp.route("/mortgage/<account_id>/schedule", methods=["GET"])
+def route_get_mortgage_schedule(account_id):
+    from services.account_service import get_mortgage_schedule
+    return jsonify(get_mortgage_schedule(account_id))

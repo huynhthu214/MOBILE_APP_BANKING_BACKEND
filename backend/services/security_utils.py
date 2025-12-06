@@ -59,7 +59,7 @@ def store_refresh_token(user_id, token, expires_at):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO REFRESH_TOKENS 
+                INSERT INTO REFRESH_TOKEN
                 (USER_ID, TOKEN, CREATED_AT, EXPIRES_AT, REVOKED) 
                 VALUES (%s,%s,NOW(),%s,0)
                 """,
@@ -75,7 +75,7 @@ def revoke_refresh_token(token):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE REFRESH_TOKENS SET REVOKED=1 WHERE TOKEN=%s",
+                "UPDATE REFRESH_TOKEN SET REVOKED=1 WHERE TOKEN=%s",
                 (token,)
             )
         conn.commit()

@@ -5,7 +5,8 @@ from models.ekyc_model import (
     update_ekyc_review,
     get_pending_ekyc,
     update_ekyc_images, 
-    activate_user_after_ekyc
+    activate_user_after_ekyc,
+    get_ekyc_by_id
 )
 import datetime
 
@@ -111,3 +112,32 @@ def review_ekyc(user_id, data):
         activate_user_after_ekyc(user_id, ekyc["EKYC_ID"])
 
     return {"status":"success","message":"EKYC reviewed"}
+
+def get_ekyc_detail_by_id(ekyc_id):
+    ekyc = get_ekyc_by_id(ekyc_id)
+
+    if not ekyc:
+        return {
+            "status": "error",
+            "message": "EKYC not found",
+            "status_code": 404
+        }
+
+    return {
+        "status": "success",
+        "data": {
+            "EKYC_ID": ekyc["EKYC_ID"],
+            "USER_ID": ekyc["USER_ID"],
+            "FULL_NAME": ekyc["FULL_NAME"],
+            "EMAIL": ekyc["EMAIL"],
+            "PHONE": ekyc["PHONE"],
+            "IMG_FRONT_URL": ekyc["IMG_FRONT_URL"],
+            "IMG_BACK_URL": ekyc["IMG_BACK_URL"],
+            "SELFIE_URL": ekyc["SELFIE_URL"],
+            "STATUS": ekyc["STATUS"],
+            "REVIEWED_AT": ekyc["REVIEWED_AT"],
+            "REVIEWED_BY": ekyc["REVIEWED_BY"],
+            "CREATED_AT": ekyc["CREATED_AT"]
+        },
+        "status_code": 200
+    }

@@ -119,7 +119,28 @@ class SavingDetailModel:
                 return cur.fetchone()
         finally:
             conn.close()
-
+            
+    @staticmethod
+    def update_interest(saving_acc_id, new_rate):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE SAVING_DETAIL SET INTEREST_RATE=%s WHERE SAVING_ACC_ID=%s",
+                            (new_rate, saving_acc_id))
+                conn.commit()
+        finally:
+            conn.close()
+            
+    @staticmethod
+    def close_saving(saving_acc_id):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                # đơn giản set TERM_MONTHS = 0
+                cur.execute("UPDATE SAVING_DETAIL SET TERM_MONTHS=0 WHERE SAVING_ACC_ID=%s", (saving_acc_id,))
+                conn.commit()
+        finally:
+            conn.close()
 class MortageDetailModel:
     TABLE_NAME = "MORTAGE_DETAIL"
 
@@ -166,3 +187,15 @@ class MortageDetailModel:
                 return cur.fetchone()
         finally:
             conn.close()
+            
+    @staticmethod
+    def update_remaining(mortage_acc_id, new_remaining):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE MORTAGE_DETAIL SET REMAINING_BALANCE=%s WHERE MORTAGE_ACC_ID=%s",
+                            (new_remaining, mortage_acc_id))
+                conn.commit()
+        finally:
+            conn.close()
+
