@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Transactions Service",
-    "_postman_id": "zybank-transactions-service",
-    "description": "Test endpoints for transaction_service.py",
+    "name": "Banking - Transaction API (Clean Version)",
+    "_postman_id": "b1234567-89ab-cdef-0123-456789abcdef",
+    "description": "Full test for deposit / withdraw / transfer with 2-step OTP flow",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,48 +11,134 @@
       "request": {
         "method": "GET",
         "url": {
-          "raw": "http://127.0.0.1:5000/api/v1/transactions?account_id=AC001",
+          "raw": "http://localhost:5000/api/v1/transactions",
           "protocol": "http",
-          "host": ["127.0.0.1"],
+          "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions"],
-          "query": [{ "key": "account_id", "value": "AC001" }]
+          "path": ["api", "v1", "transactions"]
         }
-      },
-      "response": []
+      }
     },
     {
-      "name": "Get Transaction Detail",
+      "name": "Get Transaction by ID",
       "request": {
         "method": "GET",
         "url": {
-          "raw": "http://127.0.0.1:5000/api/v1/transactions/TX001",
+          "raw": "http://localhost:5000/api/v1/transactions/{{transaction_id}}",
           "protocol": "http",
-          "host": ["127.0.0.1"],
+          "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "TX001"]
+          "path": ["api", "v1", "transactions", "{{transaction_id}}"]
         }
-      },
-      "response": []
+      }
     },
     {
-      "name": "Create Transfer",
+      "name": "DEPOSIT - Step 1 (Create)",
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"account_id\": \"A001\",\n  \"to_account_number\": \"1234567891\",\n  \"amount\": 10000000\n}"
+          "raw": "{\n  \"account_id\": \"A000001\",\n  \"amount\": 500000\n}"
         },
         "url": {
-          "raw": "http://127.0.0.1:5000/api/v1/transactions/transfer",
+          "raw": "http://localhost:5000/api/v1/transactions/deposit/create",
           "protocol": "http",
-          "host": ["127.0.0.1"],
+          "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "transfer"]
+          "path": ["api", "v1", "transactions", "deposit", "create"]
         }
-      },
-      "response": []
+      }
+    },
+    {
+      "name": "DEPOSIT - Step 2 (Confirm OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"otp\": \"{{otp}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/deposit/confirm",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "deposit", "confirm"]
+        }
+      }
+    },
+    {
+      "name": "WITHDRAW - Step 1 (Create)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"account_id\": \"A000001\",\n  \"amount\": 200000\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/withdraw/create",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "withdraw", "create"]
+        }
+      }
+    },
+    {
+      "name": "WITHDRAW - Step 2 (Confirm OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"otp\": \"{{otp}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/withdraw/confirm",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "withdraw", "confirm"]
+        }
+      }
+    },
+    {
+      "name": "TRANSFER - Step 1 (Create)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from_account_id\": \"A000001\",\n  \"to_account_number\": \"10100012345\",\n  \"amount\": 150000\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/transfer/create",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "transfer", "create"]
+        }
+      }
+    },
+    {
+      "name": "TRANSFER - Step 2 (Confirm OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"otp\": \"{{otp}}\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/transfer/confirm",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "transfer", "confirm"]
+        }
+      }
     }
   ]
 }
