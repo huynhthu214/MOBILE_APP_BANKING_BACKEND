@@ -1,14 +1,11 @@
 /*==============================================================*/
 /* DBMS name:      MySQL 5.0                                    */
-/* Created on:     05/12/2025 9:15:38 PM                        */
+/* Created on:     06/12/2025 11:16:03 AM                       */
 /*==============================================================*/
 
 
 alter table ACCOUNT 
    drop foreign key FK_ACCOUNT_USER_ACCO_USER;
-
-alter table BILL 
-   drop foreign key FK_BILL_BILL_BILL_BILL_PAY;
 
 alter table BILL_PAYMENT 
    drop foreign key FK_BILL_PAY_BILL_BILL_BILL;
@@ -34,8 +31,8 @@ alter table TRANSACTION
 alter table TRANSACTION 
    drop foreign key FK_TRANSACT_TRANSAC_P_BILL_PAY;
 
-alter table USER 
-   drop foreign key FK_USER_USER_EKYC_EKYC;
+alter table USER_BIOMETRIC 
+   drop foreign key FK_USER_BIO_USER_BIOM_USER;
 
 alter table UTILITY_PAYMENT 
    drop foreign key FK_UTILITY__TRANSAC_U_TRANSACT;
@@ -45,10 +42,6 @@ alter table ACCOUNT
    drop foreign key FK_ACCOUNT_USER_ACCO_USER;
 
 drop table if exists ACCOUNT;
-
-
-alter table BILL 
-   drop foreign key FK_BILL_BILL_BILL_BILL_PAY;
 
 drop table if exists BILL;
 
@@ -96,11 +89,13 @@ alter table TRANSACTION
 
 drop table if exists TRANSACTION;
 
-
-alter table USER 
-   drop foreign key FK_USER_USER_EKYC_EKYC;
-
 drop table if exists USER;
+
+
+alter table USER_BIOMETRIC 
+   drop foreign key FK_USER_BIO_USER_BIOM_USER;
+
+drop table if exists USER_BIOMETRIC;
 
 
 alter table UTILITY_PAYMENT 
@@ -130,7 +125,6 @@ create table ACCOUNT
 create table BILL
 (
    BILL_ID              varchar(10) not null  comment '',
-   PAYMENT_ID           varchar(10)  comment '',
    PROVIDER             varchar(100)  comment '',
    AMOUNT_DUE           datetime  comment '',
    STATUS               text  comment '',
@@ -256,7 +250,6 @@ create table TRANSACTION
 create table USER
 (
    USER_ID              varchar(10) not null  comment '',
-   EKYC_ID              varchar(10)  comment '',
    FULL_NAME            text  comment '',
    EMAIL                text  comment '',
    PHONE                text  comment '',
@@ -265,6 +258,19 @@ create table USER
    IS_ACTIVE            bool  comment '',
    PASSWORD             text  comment '',
    primary key (USER_ID)
+);
+
+/*==============================================================*/
+/* Table: USER_BIOMETRIC                                        */
+/*==============================================================*/
+create table USER_BIOMETRIC
+(
+   USER_ID              varchar(10)  comment '',
+   BIOMETRIC_ID         varchar(10)  comment '',
+   FACE_TEMPLATE_HASH   text  comment '',
+   DEVICE_BIOMETRIC     bool  comment '',
+   FACE_ENABLED         bool  comment '',
+   CREATED_AT           datetime  comment ''
 );
 
 /*==============================================================*/
@@ -283,9 +289,6 @@ create table UTILITY_PAYMENT
 
 alter table ACCOUNT add constraint FK_ACCOUNT_USER_ACCO_USER foreign key (USER_ID)
       references USER (USER_ID) on delete restrict on update restrict;
-
-alter table BILL add constraint FK_BILL_BILL_BILL_BILL_PAY foreign key (PAYMENT_ID)
-      references BILL_PAYMENT (PAYMENT_ID) on delete restrict on update restrict;
 
 alter table BILL_PAYMENT add constraint FK_BILL_PAY_BILL_BILL_BILL foreign key (BILL_ID)
       references BILL (BILL_ID) on delete restrict on update restrict;
@@ -311,8 +314,8 @@ alter table TRANSACTION add constraint FK_TRANSACT_ACCOUNT_T_ACCOUNT foreign key
 alter table TRANSACTION add constraint FK_TRANSACT_TRANSAC_P_BILL_PAY foreign key (PAYMENT_ID)
       references BILL_PAYMENT (PAYMENT_ID) on delete restrict on update restrict;
 
-alter table USER add constraint FK_USER_USER_EKYC_EKYC foreign key (EKYC_ID)
-      references EKYC (EKYC_ID) on delete restrict on update restrict;
+alter table USER_BIOMETRIC add constraint FK_USER_BIO_USER_BIOM_USER foreign key (USER_ID)
+      references USER (USER_ID) on delete restrict on update restrict;
 
 alter table UTILITY_PAYMENT add constraint FK_UTILITY__TRANSAC_U_TRANSACT foreign key (TRANSACTION_ID)
       references TRANSACTION (TRANSACTION_ID) on delete restrict on update restrict;
