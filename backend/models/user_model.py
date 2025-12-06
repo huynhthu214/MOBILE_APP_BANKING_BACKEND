@@ -74,3 +74,15 @@ def search_users(keyword=""):
             return cur.fetchall()
     finally:
         conn.close()
+        
+def update_user_password(user_id, hashed_password):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE USER SET PASSWORD=%s WHERE USER_ID=%s",
+                (hashed_password, user_id)
+            )
+        conn.commit()
+    finally:
+        conn.close()

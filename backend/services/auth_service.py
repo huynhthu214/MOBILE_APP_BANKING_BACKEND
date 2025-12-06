@@ -1,10 +1,12 @@
-from models.user_model import get_user_by_id, get_user_by_email
+from models.user_model import get_user_by_id, get_user_by_email, update_user_password
 from services.security_utils import (
     create_access_token,
     create_refresh_token,
     store_refresh_token,
     revoke_refresh_token,
-    blacklist_access_token
+    blacklist_access_token,
+    hash_password,
+    verify_password
 )
 from services.otp_service import create_otp, verify_otp_util
 from db import get_conn
@@ -35,8 +37,8 @@ def login(data):
     if not user.get('IS_ACTIVE', 1):
         return {"status":"error","message":"account inactive","status_code":403}
 
-    # Nếu bạn dùng bcrypt thì đổi lại verify_password
-    if password != user.get('PASSWORD_HASH'):
+    # So sánh trực tiếp password
+    if password != user.get('PASSWORD'):
         return {"status":"error","message":"invalid credentials","status_code":401}
 
     # Login có OTP
@@ -55,7 +57,7 @@ def login(data):
     refresh_token, expires = create_refresh_token(user['USER_ID'])
     store_refresh_token(user['USER_ID'], refresh_token, expires)
 
-    safe_user = {k: v for k, v in user.items() if k != 'PASSWORD_HASH'}
+    safe_user = {k: v for k, v in user.items() if k != 'PASSWORD'}
 
     return {
         "status":"success",
@@ -65,7 +67,6 @@ def login(data):
             "user": safe_user
         }
     }
-
 
 def logout(data, auth_header=None):
     refresh_token = data.get('refresh_token')
@@ -92,7 +93,7 @@ def refresh(data):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM REFRESH_TOKENS WHERE TOKEN=%s AND REVOKED=0 LIMIT 1",
+                "SELECT * FROM REFRESH_TOKEN WHERE TOKEN=%s AND REVOKED=0 LIMIT 1",
                 (refresh_token,)
             )
             row = cur.fetchone()
@@ -171,3 +172,53 @@ def verify_otp(data):
         return {"status":"error","message": msg,"status_code":400}
 
     return {"status":"success","message":"otp verified"}
+# --- Change password ---
+def change_password(user_id, data):
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return {"status":"error","message":"old_password and new_password required","status_code":400}
+
+    user = get_user_by_id(user_id)
+    if not user:
+        return {"status":"error","message":"User not found","status_code":404}
+
+    # So sánh trực tiếp với cột PASSWORD_HASH
+    if old_password != user.get('PASSWORD'):
+        return {"status":"error","message":"Old password incorrect","status_code":401}
+
+    # Update password mới
+    update_user_password(user_id, new_password)
+
+    return {"status":"success","message":"Password changed successfully"}
+
+
+def forgot_password(data):
+    email = data.get('email')
+    if not email:
+        return {"status":"error","message":"Email required","status_code":400}
+
+    user = get_user_by_email(email)
+    if not user:
+        return {"status":"error","message":"User not found","status_code":404}
+
+    otp_id, code = create_otp(user['USER_ID'], purpose='forgot_password')
+
+    return {"status":"success","message":"OTP sent", "data": {"otp_id": otp_id, "otp_code_dev": code}}
+
+
+def reset_password(data):
+    user_id = data.get('USER_ID')
+    otp_code = data.get('otp_code')
+    new_password = data.get('new_password')
+
+    if not user_id or not otp_code or not new_password:
+        return {"status":"error","message":"USER_ID, otp_code, new_password required","status_code":400}
+
+    ok, msg = verify_otp_util(user_id, otp_code, purpose='forgot_password')
+    if not ok:
+        return {"status":"error","message": msg,"status_code":400}
+
+    update_user_password(user_id, new_password)
+    return {"status":"success","message":"Password reset successfully"}

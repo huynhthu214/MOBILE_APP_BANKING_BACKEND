@@ -8,10 +8,10 @@ def generate_ekyc_id():
             cur.execute("SELECT EKYC_ID FROM EKYC ORDER BY EKYC_ID DESC LIMIT 1")
             last = cur.fetchone()
             if last and last["EKYC_ID"]:
-                last_id = last["EKYC_ID"]   # ví dụ: EK002
-                num = int(last_id[2:]) + 1  # cắt đúng sau "EK"
-                return f"EK{num:03d}"
-            return "EK001"
+                last_id = last["EKYC_ID"]  
+                num = int(last_id[2:]) + 1  
+                return f"E{num:03d}"
+            return "E001"
     finally:
         conn.close()
 
@@ -108,5 +108,23 @@ def activate_user_after_ekyc(user_id, ekyc_id):
                 WHERE USER_ID=%s
             """, (ekyc_id, user_id))
             conn.commit()
+    finally:
+        conn.close()
+
+def get_ekyc_by_id(ekyc_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    E.*,
+                    U.FULL_NAME,
+                    U.EMAIL,
+                    U.PHONE
+                FROM EKYC E
+                JOIN USER U ON E.USER_ID = U.USER_ID
+                WHERE E.EKYC_ID = %s
+            """, (ekyc_id,))
+            return cur.fetchone()
     finally:
         conn.close()

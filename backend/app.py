@@ -9,6 +9,8 @@ from routes.otp import bp as otp_bp
 from routes.accounts import bp as account_bp
 from routes.location import bp as location_bp
 from routes.system import bp as system_bp
+from routes.biometric import bp as biometric_bp
+from routes.admin import bp_admin
 
 app = Flask(__name__)
 
@@ -22,6 +24,8 @@ app.register_blueprint(otp_bp)
 app.register_blueprint(account_bp)
 app.register_blueprint(location_bp)
 app.register_blueprint(system_bp)
+app.register_blueprint(biometric_bp)
+app.register_blueprint(bp_admin)
 
 if __name__ == "__main__":
     app.run(debug=True)

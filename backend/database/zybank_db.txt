@@ -1,3 +1,4 @@
+/*================== LOCATION ============================*/
 INSERT INTO LOCATION (BRANCH_ID, NAME, ADDRESS, LAT, LNG, OPEN_HOURS, CREATED_AT)
 VALUES
 ('L001','Branch A','123 Street A',10.776,106.700,'08:00-17:00',NOW()),
@@ -6,14 +7,16 @@ VALUES
 ('L004','Branch D','321 Street D',10.790,106.715,'08:00-17:00',NOW()),
 ('L005','Branch E','654 Street E',10.795,106.720,'08:00-17:00',NOW());
 
-INSERT INTO `USER` (USER_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, IS_ACTIVE, PASSWORD)
-VALUES 
-('U001', 'Nguyen Van A', 'a@gmail.com', '0123456789', 'customer', NOW(), 1, 'hash123'),
-('U002', 'Tran Thi B', 'b@gmail.com', '0987654321', 'customer', NOW(), 1, 'hash234'),
-('U003', 'Le Van C', 'c@gmail.com', '0911223344', 'customer', NOW(), 1, 'hash345'),
-('U004', 'Pham Thi D', 'd@gmail.com', '0909988776', 'customer', NOW(), 1, 'hash456'),
-('U005', 'Hoang Van E', 'e@gmail.com', '0933445566', 'customer', NOW(), 1, 'hash567');
+/*================== USER_BIOMETRIC =====================*/
+INSERT INTO USER_BIOMETRIC (BIOMETRIC_ID, USER_ID, FACE_TEMPLATE_HASH, DEVICE_BIOMETRIC, FACE_ENABLED, CREATED_AT)
+VALUES
+('B001', 'U001', 'facehash_u001', 1, 1, NOW()),
+('B002', 'U002', 'facehash_u002', 1, 1, NOW()),
+('B003', 'U003', 'facehash_u003', 0, 0, NOW()),
+('B004', 'U004', 'facehash_u004', 1, 1, NOW()),
+('B005', 'U005', 'facehash_u005', 1, 1, NOW());
 
+/*================== EKYC ===============================*/
 INSERT INTO EKYC (EKYC_ID, USER_ID, IMG_FRONT_URL, IMG_BACK_URL, SELFIE_URL, STATUS, REVIEWED_AT, REVIEWED_BY, CREATED_AT)
 VALUES 
 ('E001', 'U001', 'front1.jpg', 'back1.jpg', 'selfie1.jpg', 'approved', NOW(), 'officer01', NOW()),
@@ -22,6 +25,16 @@ VALUES
 ('E004', 'U004', 'front4.jpg', 'back4.jpg', 'selfie4.jpg', 'approved', NOW(), 'officer03', NOW()),
 ('E005', 'U005', 'front5.jpg', 'back5.jpg', 'selfie5.jpg', 'approved', NOW(), 'officer01', NOW());
 
+/*================== USER ===============================*/
+INSERT INTO USER (USER_ID, BIOMETRIC_ID, EKYC_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, PASSWORD)
+VALUES 
+('U001', 'B001', 'E001', 'Nguyen Van A', 'a@gmail.com', '0123456789', 'customer', NOW(), 'hash123'),
+('U002', 'B002', 'E002', 'Tran Thi B', 'b@gmail.com', '0987654321', 'customer', NOW(), 'hash234'),
+('U003', 'B003', 'E003', 'Le Van C', 'c@gmail.com', '0911223344', 'customer', NOW(), 'hash345'),
+('U004', 'B004', 'E004', 'Pham Thi D', 'd@gmail.com', '0909988776', 'customer', NOW(), 'hash456'),
+('U005', 'B005', 'E005', 'Hoang Van E', 'e@gmail.com', '0933445566', 'customer', NOW(), 'hash567');
+
+/*================== ACCOUNT ============================*/
 INSERT INTO ACCOUNT (ACCOUNT_ID, USER_ID, ACCOUNT_TYPE, BALANCE, INTEREST_RATE, CREATED_AT, STATUS, ACCOUNT_NUMBER)
 VALUES 
 ('A001', 'U001', 'checking', 5000000, 0, NOW(), 'active', '1234567890'),
@@ -30,6 +43,7 @@ VALUES
 ('A004', 'U004', 'checking', 2000000, 0, NOW(), 'active', '1234567893'),
 ('A005', 'U005', 'checking', 3000000, 0, NOW(), 'active', '1234567894');
 
+/*================== SAVING_DETAIL =======================*/
 INSERT INTO SAVING_DETAIL (SAVING_ACC_ID, ACCOUNT_ID, PRINCIPAL_AMOUNT, INTEREST_RATE, TERM_MONTHS, START_DATE, MATURITY_DATE)
 VALUES 
 ('S001', 'A001', 10000000, 0.05, 12, NOW(), '2026-11-22'),
@@ -38,6 +52,7 @@ VALUES
 ('S004', 'A004', 8000000, 0.045, 18, NOW(), '2027-05-22'),
 ('S005', 'A005', 12000000, 0.05, 12, NOW(), '2026-11-22');
 
+/*================== MORTAGE_DETAIL ======================*/
 INSERT INTO MORTAGE_DETAIL (MORTAGE_ACC_ID, ACCOUNT_ID, TOTAL_LOAN_AMOUNT, REMAINING_BALANCE, PAYMEN_FREQUENCY, PAYMENT_AMOUNT, NEXT_PAYMENT_DATE, LOAN_END_DATE)
 VALUES
 ('M001','A001',20000000,18000000,'monthly',1666666,NOW(),'2026-11-22'),
@@ -46,24 +61,16 @@ VALUES
 ('M004','A004',10000000,9000000,'monthly',833333,NOW(),'2026-08-22'),
 ('M005','A005',25000000,24000000,'monthly',2083333,NOW(),'2027-05-22');
 
-INSERT INTO BILL_PAYMENT (PAYMENT_ID, TRANSACTION_ID, BILL_ID, PAID_AT)
-VALUES
-('BP001', NULL, NULL, NOW()),
-('BP002', NULL, NULL, NOW()),
-('BP003', NULL, NULL, NOW()),
-('BP004', NULL, NULL, NOW()),
-('BP005', NULL, NULL, NOW());
-
-INSERT INTO `TRANSACTION`
-(TRANSACTION_ID, PAYMENT_ID, ACCOUNT_ID, AMOUNT, CURRENCY, ACCOUNT_TYPE, STATUS,
- CREATED_AT, COMPLETE_AT, DEST_ACC_NUM, DEST_ACC_NAME, DEST_BANK_CODE, TYPE)
+/*================== TRANSACTION =========================*/
+INSERT INTO TRANSACTION (TRANSACTION_ID, ACCOUNT_ID, AMOUNT, CURRENCY, ACCOUNT_TYPE, STATUS, CREATED_AT, COMPLETE_AT, TYPE)
 VALUES 
-('T001', NULL, 'A001', 200000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
-('T002', NULL, 'A002', 500000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
-('T003', NULL, 'A003', 300000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
-('T004', NULL, 'A004', 100000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit'),
-('T005', NULL, 'A005', 400000, 'VND', 'checking', 'completed', NOW(), NOW(), NULL, NULL, NULL, 'deposit');
+('T001','A001',200000,'VND','checking','completed',NOW(),NOW(),'deposit'),
+('T002','A002',500000,'VND','checking','completed',NOW(),NOW(),'deposit'),
+('T003','A003',300000,'VND','checking','completed',NOW(),NOW(),'deposit'),
+('T004','A004',100000,'VND','checking','completed',NOW(),NOW(),'deposit'),
+('T005','A005',400000,'VND','checking','completed',NOW(),NOW(),'deposit');
 
+/*================== BILL ===============================*/
 INSERT INTO BILL (BILL_ID, PROVIDER, AMOUNT_DUE, STATUS, DUE_DATE, CREATED_AT)
 VALUES 
 ('B001', 'EVN', NOW(), 'unpaid', DATE_ADD(NOW(), INTERVAL 7 DAY), NOW()),
@@ -72,39 +79,36 @@ VALUES
 ('B004', 'VNPT', NOW(), 'unpaid', DATE_ADD(NOW(), INTERVAL 7 DAY), NOW()),
 ('B005', 'EVN', NOW(), 'unpaid', DATE_ADD(NOW(), INTERVAL 7 DAY), NOW());
 
-UPDATE BILL_PAYMENT SET TRANSACTION_ID='T001', BILL_ID='B001' WHERE PAYMENT_ID='BP001';
-UPDATE BILL_PAYMENT SET TRANSACTION_ID='T002', BILL_ID='B002' WHERE PAYMENT_ID='BP002';
-UPDATE BILL_PAYMENT SET TRANSACTION_ID='T003', BILL_ID='B003' WHERE PAYMENT_ID='BP003';
-UPDATE BILL_PAYMENT SET TRANSACTION_ID='T004', BILL_ID='B004' WHERE PAYMENT_ID='BP004';
-UPDATE BILL_PAYMENT SET TRANSACTION_ID='T005', BILL_ID='B005' WHERE PAYMENT_ID='BP005';
+/*================== BILL_PAYMENT =======================*/
+INSERT INTO BILL_PAYMENT (PAYMENT_ID, TRANSACTION_ID, BILL_ID, PAID_AT)
+VALUES
+('BP001','T001','B001',NOW()),
+('BP002','T002','B002',NOW()),
+('BP003','T003','B003',NOW()),
+('BP004','T004','B004',NOW()),
+('BP005','T005','B005',NOW());
 
-UPDATE `TRANSACTION` SET PAYMENT_ID='BP001' WHERE TRANSACTION_ID='T001';
-UPDATE `TRANSACTION` SET PAYMENT_ID='BP002' WHERE TRANSACTION_ID='T002';
-UPDATE `TRANSACTION` SET PAYMENT_ID='BP003' WHERE TRANSACTION_ID='T003';
-UPDATE `TRANSACTION` SET PAYMENT_ID='BP004' WHERE TRANSACTION_ID='T004';
-UPDATE `TRANSACTION` SET PAYMENT_ID='BP005' WHERE TRANSACTION_ID='T005';
-
+/*================== UTILITY_PAYMENT ====================*/
 INSERT INTO UTILITY_PAYMENT (UTILITY_PAYMENT_ID, TRANSACTION_ID, PROVIDER_CODE, REFERENCE_CODE_1, REFERENCE_CODE_2, CREATED_AT)
-VALUES 
-('UP001', 'T001', 'WATER', 'REF123', 'REF456', NOW()),
-('UP002', 'T002', 'ELECTRIC', 'REF223', 'REF556', NOW()),
-('UP003', 'T003', 'INTERNET', 'REF323', 'REF656', NOW()),
-('UP004', 'T004', 'WATER', 'REF423', 'REF756', NOW()),
-('UP005', 'T005', 'ELECTRIC', 'REF523', 'REF856', NOW());
+VALUES
+('UP001','T001','WATER','REF123','REF456',NOW()),
+('UP002','T002','ELECTRIC','REF223','REF556',NOW()),
+('UP003','T003','INTERNET','REF323','REF656',NOW()),
+('UP004','T004','WATER','REF423','REF756',NOW()),
+('UP005','T005','ELECTRIC','REF523','REF856',NOW());
 
+/*================== OTP ==================================*/
 INSERT INTO OTP (OTP_ID, USER_ID, CODE, PURPOSE, CREATED_AT, EXPIRES_AT, IS_USED)
 VALUES
-('OTP001','U001','123456','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
-('OTP002','U002','654321','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
-('OTP003','U003','111222','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
-('OTP004','U004','333444','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0),
-('OTP005','U005','555666','login',NOW(),DATE_ADD(NOW(),INTERVAL 5 MINUTE),0);
+('OTP001','U001','123456','login',NOW(),DATE_ADD(NOW(), INTERVAL 5 MINUTE),0),
+('OTP002','U002','654321','login',NOW(),DATE_ADD(NOW(), INTERVAL 5 MINUTE),0),
+('OTP003','U003','111222','login',NOW(),DATE_ADD(NOW(), INTERVAL 5 MINUTE),0),
+('OTP004','U004','333444','login',NOW(),DATE_ADD(NOW(), INTERVAL 5 MINUTE),0),
+('OTP005','U005','555666','login',NOW(),DATE_ADD(NOW(), INTERVAL 5 MINUTE),0);
 
-INSERT INTO USER_BIOMETRIC
-(USER_ID, BIOMETRIC_ID, FACE_TEMPLATE_HASH, DEVICE_BIOMETRIC, FACE_ENABLED, CREATED_AT)
+/*================== EXTERNAL_ACCOUNT ===================*/
+INSERT INTO EXTERNAL_ACCOUNT (EX_ACC_ID, BANK_CODE, ACCOUNT_NUMBER, ACCOUNT_NAME)
 VALUES
-('U001', 'B001', 'facehash_u001', 1, 1, NOW()),
-('U002', 'B002', 'facehash_u002', 1, 1, NOW()),
-('U003', 'B003', 'facehash_u003', 0, 0, NOW()),
-('U004', 'B004', 'facehash_u004', 1, 1, NOW()),
-('U005', 'B005', 'facehash_u005', 1, 1, NOW());
+('EX001', 'VCB', '123456789', 'Nguyen Van A'),
+('EX002', 'BIDV', '987654321', 'Tran Thi B'),
+('EX003', 'ACB', '112233445', 'Le Van C');
