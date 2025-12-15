@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "Banking - Transaction API (Clean Version)",
-    "_postman_id": "b1234567-89ab-cdef-0123-456789abcdef",
-    "description": "Full test for deposit / withdraw / transfer with 2-step OTP flow",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "Banking - Transaction API (FULL VERSION)",
+    "_postman_id": "f9a1c321-12ab-45de-9f11-acde98765432",
+    "description": "Full test: deposit / withdraw / transfer / cancel / retry / rollback (2-step OTP)",
+    "schema": "[https://schema.getpostman.com/json/collection/v2.1.0/collection.json](https://schema.getpostman.com/json/collection/v2.1.0/collection.json)"
   },
   "item": [
     {
@@ -39,14 +39,14 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"account_id\": \"A000001\",\n  \"amount\": 500000\n}"
+          "raw": "{\n  'account_id': 'ACC000001',\n  'amount: 500000\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/api/v1/transactions/deposit/create",
+          "raw": "http://localhost:5000/api/v1/transactions/deposit",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "deposit", "create"]
+          "path": ["api", "v1", "transactions", "deposit"]
         }
       }
     },
@@ -57,14 +57,14 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"otp\": \"{{otp}}\"\n}"
+          "raw": "{\n  'otp': '{{otp}}'\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/api/v1/transactions/deposit/confirm",
+          "raw": "http://localhost:5000/api/v1/transactions/{{transaction_id}}/confirm",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "deposit", "confirm"]
+          "path": ["api", "v1", "transactions", "{{transaction_id}}", "confirm"]
         }
       }
     },
@@ -75,14 +75,14 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"account_id\": \"A000001\",\n  \"amount\": 200000\n}"
+          "raw": "{\n  'account_id': 'ACC000001',\n  'amount': 200000\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/api/v1/transactions/withdraw/create",
+          "raw": "http://localhost:5000/api/v1/transactions/withdraw",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "withdraw", "create"]
+          "path": ["api", "v1", "transactions", "withdraw"]
         }
       }
     },
@@ -93,14 +93,14 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"otp\": \"{{otp}}\"\n}"
+          "raw": "{\n  'otp': '{{otp}}'\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/api/v1/transactions/withdraw/confirm",
+          "raw": "http://localhost:5000/api/v1/transactions/{{transaction_id}}/confirm",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "withdraw", "confirm"]
+          "path": ["api", "v1", "transactions", "{{transaction_id}}", "confirm"]
         }
       }
     },
@@ -111,14 +111,14 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"from_account_id\": \"A000001\",\n  \"to_account_number\": \"10100012345\",\n  \"amount\": 150000\n}"
+          "raw": "{\n  'source_account_id': 'ACC000001',\n  'destination_account_id': 'ACC000002',\n  'amount': 150000\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/api/v1/transactions/transfer/create",
+          "raw": "http://localhost:5000/api/v1/transactions/transfer",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "transfer", "create"]
+          "path": ["api", "v1", "transactions", "transfer"]
         }
       }
     },
@@ -129,14 +129,65 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"otp\": \"{{otp}}\"\n}"
+          "raw": "{\n  'otp': '{{otp}}'\n}"
         },
         "url": {
-          "raw": "http://localhost:5000/api/v1/transactions/transfer/confirm",
+          "raw": "http://localhost:5000/api/v1/transactions/{{transaction_id}}/confirm",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5000",
-          "path": ["api", "v1", "transactions", "transfer", "confirm"]
+          "path": ["api", "v1", "transactions", "{{transaction_id}}", "confirm"]
+        }
+      }
+    },
+    {
+      "name": "CANCEL TRANSACTION (PENDING)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/{{transaction_id}}/cancel",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "{{transaction_id}}", "cancel"]
+        }
+      }
+    },
+    {
+      "name": "RETRY TRANSACTION (FAILED / TIMEOUT)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "http://localhost:5000/api/v1/transactions/{{transaction_id}}/retry",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "{{transaction_id}}", "retry"]
+        }
+      }
+    },
+    {
+      "name": "ADMIN - ROLLBACK TRANSACTION",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  'reason': 'Manual rollback by admin'\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/admin/transactions/{{transaction_id}}/rollback",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "transactions",
+            "{{transaction_id}}",
+            "rollback"
+          ]
         }
       }
     }

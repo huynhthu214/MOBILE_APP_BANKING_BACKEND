@@ -1,6 +1,5 @@
 from models.account_model import AccountModel, SavingDetailModel, MortageDetailModel
 from models.transaction_model import get_transactions, create_transaction
-from services.transaction_service import generate_sequential_id
 from datetime import datetime, timedelta
 # ===== ACCOUNT =====
 def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status="active", account_number=None):
@@ -175,31 +174,28 @@ def pay_mortgage(account_id, amount):
     if not mortgage:
         return {"status":"error","message":"Mortgage detail not found"}
 
-    remaining = mortgage["REMAINING_BALANCE"]
-    if amount > remaining:
-        return {"status":"error","message":"Amount exceeds remaining balance"}
-
-    new_remaining = remaining - amount
-    MortageDetailModel.update_remaining(mortgage["MORTAGE_ACC_ID"], new_remaining)
-
-    # Tạo transaction theo chuẩn transaction_model
-    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID")
     acc = AccountModel.get_by_id(account_id)
+    if acc["BALANCE"] < amount:
+        return {"status":"error","message":"Insufficient balance"}
 
-    tx_data = {
-        "transaction_id": tx_id,
-        "payment_id": None,
-        "account_id": account_id,
-        "amount": amount,
-        "currency": "VND",
-        "account_type": acc["ACCOUNT_TYPE"],
-        "status": "COMPLETED",
-        "type": "MORTGAGE_PAYMENT"
+    # cập nhật dư nợ
+    new_remaining = mortgage["REMAINING_BALANCE"] - amount
+    MortageDetailModel.update_remaining(
+        mortgage["MORTAGE_ACC_ID"], new_remaining
+    )
+
+    # tạo transaction chuẩn
+    tx_id = create_withdraw(
+        acc["USER_ID"],
+        account_id,
+        amount
+    )
+
+    return {
+        "status": "success",
+        "remaining_balance": new_remaining,
+        "transaction_id": tx_id
     }
-
-    create_transaction(tx_data)
-
-    return {"status":"success", "mortgage_acc_id": mortgage["MORTAGE_ACC_ID"], "remaining_balance": new_remaining, "transaction_id": tx_id}
 
 def get_mortgage_schedule(account_id):
     acc = AccountModel.get_by_id(account_id)

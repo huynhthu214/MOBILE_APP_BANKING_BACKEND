@@ -1,186 +1,97 @@
-# models/transaction_model.py
-from db import get_conn
 from datetime import datetime
+import uuid
 
+# =========================
+# ID GENERATOR
+# =========================
+def generate_transaction_id():
+    return "T" + uuid.uuid4().hex[:10].upper()
 
-# ============================================================
-# GET ALL / FILTER
-# ============================================================
-def get_transactions(account_id=None):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            if account_id:
-                cur.execute("""
-                    SELECT * FROM `TRANSACTION`
-                    WHERE ACCOUNT_ID = %s
-                    ORDER BY CREATED_AT DESC
-                """, (account_id,))
-            else:
-                cur.execute("SELECT * FROM `TRANSACTION` ORDER BY CREATED_AT DESC")
-
-            return cur.fetchall()
-    finally:
-        conn.close()
-
-
-# ============================================================
-# GET BY ID
-# ============================================================
-def get_transaction_by_id(transaction_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT * FROM `TRANSACTION`
-                WHERE TRANSACTION_ID = %s
-            """, (transaction_id,))
-            return cur.fetchone()
-    finally:
-        conn.close()
-
-
-# ============================================================
-# CREATE TRANSACTION (deposit / withdraw / transfer)
-# ============================================================
+# =========================
+# CREATE
+# =========================
 def create_transaction(
-    transaction_id,
-    account_id,
-    amount,
-    tx_type,
-    status="PENDING",
-    dest_acc_num=None,
-    dest_acc_name=None,
-    dest_bank_code=None,
-    currency="VND",
-    account_type="checking",
-    payment_id=None
+    conn, tx_id, user_id, source_acc, dest_acc,
+    amount, tx_type, status, description=None
 ):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO `TRANSACTION` (
-                    TRANSACTION_ID,
-                    PAYMENT_ID,
-                    ACCOUNT_ID,
-                    AMOUNT,
-                    CURRENCY,
-                    ACCOUNT_TYPE,
-                    STATUS,
-                    CREATED_AT,
-                    COMPLETE_AT,
-                    DEST_ACC_NUM,
-                    DEST_ACC_NAME,
-                    DEST_BANK_CODE,
-                    TYPE
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NULL, %s, %s, %s, %s)
-            """, (
-                transaction_id,
-                payment_id,
-                account_id,
-                amount,
-                currency,
-                account_type,
-                status,
-                dest_acc_num,
-                dest_acc_name,
-                dest_bank_code,
-                tx_type
-            ))
-            conn.commit()
-    finally:
-        conn.close()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO transactions (
+            transaction_id, user_id,
+            source_account_id, destination_account_id,
+            amount, transaction_type,
+            status, description, created_at
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (
+        tx_id, user_id,
+        source_acc, dest_acc,
+        amount, tx_type,
+        status, description,
+        datetime.utcnow()
+    ))
 
+# =========================
+# READ
+# =========================
+def get_transaction_by_id(conn, tx_id, for_update=False):
+    cursor = conn.cursor(dictionary=True)
+    sql = "SELECT * FROM transactions WHERE transaction_id=%s"
+    if for_update:
+        sql += " FOR UPDATE"
+    cursor.execute(sql, (tx_id,))
+    return cursor.fetchone()
 
-# ============================================================
+def get_transactions_by_account(conn, account_id, limit=50, offset=0):
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT *
+        FROM transactions
+        WHERE source_account_id=%s OR destination_account_id=%s
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """, (account_id, account_id, limit, offset))
+    return cursor.fetchall()
+
+def get_transactions_by_user(conn, user_id, limit=50, offset=0):
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT *
+        FROM transactions
+        WHERE user_id=%s
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """, (user_id, limit, offset))
+    return cursor.fetchall()
+
+# =========================
 # UPDATE STATUS
-# ============================================================
-def update_transaction_status(transaction_id, status):
+# =========================
+def update_transaction_status(conn, tx_id, status):
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE transactions
+        SET status=%s, updated_at=%s
+        WHERE transaction_id=%s
+    """, (status, datetime.utcnow(), tx_id))
+
+def cancel_transaction(conn, tx_id):
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE transactions
+        SET status='CANCELLED', updated_at=%s
+        WHERE transaction_id=%s AND status='PENDING'
+    """, (datetime.utcnow(), tx_id))
+
+def get_transactions(account_id, limit=50, offset=0):
     conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE `TRANSACTION`
-                SET STATUS = %s,
-                    COMPLETE_AT = NOW()
-                WHERE TRANSACTION_ID = %s
-            """, (status, transaction_id))
-            conn.commit()
-    finally:
-        conn.close()
-
-
-# ============================================================
-# ACCOUNT SUPPORT
-# ============================================================
-def get_account(account_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s", (account_id,))
-            return cur.fetchone()
-    finally:
-        conn.close()
-
-
-def get_account_by_number(account_number):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_NUMBER = %s", (account_number,))
-            return cur.fetchone()
-    finally:
-        conn.close()
-
-
-def update_balance(account_id, amount, increase=True):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            if increase:
-                cur.execute("""
-                    UPDATE ACCOUNT
-                    SET BALANCE = BALANCE + %s
-                    WHERE ACCOUNT_ID = %s
-                """, (amount, account_id))
-            else:
-                cur.execute("""
-                    UPDATE ACCOUNT
-                    SET BALANCE = BALANCE - %s
-                    WHERE ACCOUNT_ID = %s
-                """, (amount, account_id))
-
-            conn.commit()
-    finally:
-        conn.close()
-
-
-# ============================================================
-# OTP SUPPORT
-# ============================================================
-def get_valid_otp(user_id, code):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT *
-                FROM OTP
-                WHERE USER_ID = %s
-                  AND CODE = %s
-                  AND IS_USED = 0
-                  AND EXPIRES_AT > NOW()
-            """, (user_id, code))
-            return cur.fetchone()
-    finally:
-        conn.close()
-
-
-def mark_otp_used(otp_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE OTP SET IS_USED = 1 WHERE OTP_ID = %s", (otp_id,))
-            conn.commit()
-    finally:
-        conn.close()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT *
+        FROM transactions
+        WHERE source_account_id = %s
+           OR destination_account_id = %s
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """, (account_id, account_id, limit, offset))
+    return cursor.fetchall()
