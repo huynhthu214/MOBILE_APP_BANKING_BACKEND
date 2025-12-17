@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "ZYBank - Dev B Services",
+    "_postman_id": "zybank-devb-services",
+    "description": "Test Transaction, Bill, Utility services (Dev B)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Transactions",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Transaction Detail",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/T0001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "T0001"]
+        }
+      },
+      "response": []
+    },
+
+    {
+      "name": "Transfer - Create (Send OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from_account_id\": \"ACC01\",\n  \"to_account_number\": \"123456789\",\n  \"amount\": 500000\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/transfer/create",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "transfer", "create"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Transfer - Confirm OTP",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"T0001\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/transfer/confirm",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "transfer", "confirm"]
+        }
+      },
+      "response": []
+    },
+
+    {
+      "name": "Deposit - Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"account_id\": \"ACC01\",\n  \"amount\": 1000000\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/deposit/create",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "deposit", "create"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Deposit - Confirm OTP",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"T0002\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/transactions/deposit/confirm",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "transactions", "deposit", "confirm"]
+        }
+      },
+      "response": []
+    },
+
+    {
+      "name": "List Bills",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/bills",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "bills"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Bill Detail",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/bills/B0001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "bills", "B0001"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Pay Bill",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"account_id\": \"ACC01\",\n  \"bill_id\": \"B0001\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/bills/B0001/pay",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "bills", "B0001", "pay"]
+        }
+      },
+      "response": []
+    },
+
+    {
+      "name": "List Utility Payments",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/utility",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "utility"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Utility Payment Detail",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/utility/UP0001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "utility", "UP0001"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Utility Payment",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"T0003\",\n  \"provider_code\": \"WATER\",\n  \"ref1\": \"REF123\",\n  \"ref2\": \"REF456\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/utility",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "utility"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

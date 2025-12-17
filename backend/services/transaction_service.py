@@ -1,7 +1,5 @@
 from db import get_conn
-from models.transaction_model import (
-    get_account_by_number
-)
+from models.transaction_model import TransactionModel
 from datetime import datetime, timedelta
 import random
 import string
@@ -589,5 +587,23 @@ def resend_otp_service(transaction_id):
     except Exception as e:
         conn.rollback()
         return {"status": "error", "message": f"Server error: {e}"}
+    finally:
+        conn.close()
+
+def list_transactions_service(account_id=None):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            if account_id:
+                cur.execute(
+                    "SELECT * FROM TRANSACTION WHERE ACCOUNT_ID=%s ORDER BY CREATED_AT DESC",
+                    (account_id,)
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM TRANSACTION ORDER BY CREATED_AT DESC"
+                )
+            rows = cur.fetchall()
+        return {"status": "success", "data": rows}
     finally:
         conn.close()
