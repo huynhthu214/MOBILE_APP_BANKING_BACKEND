@@ -1,56 +1,58 @@
 from models.otp_model import OTPModel
 import datetime, random
+from services.mail_service import send_email
+from services.mail_templates import otp_email_template
+from models.user_model import get_user_by_id
 
 def generate_otp_code(length=6):
-    return ''.join([str(random.randint(0, 9)) for _ in range(length)])
+    return ''.join(str(random.randint(0, 9)) for _ in range(length))
 
-
-def send_otp(user_id, purpose="transaction"):
-    otp_code = generate_otp_code()
-    expires_at = datetime.datetime.now() + datetime.timedelta(minutes=5)
-
-    # OTP_ID được sinh tự động trong model
-    otp_id = OTPModel.create(user_id, otp_code, purpose, expires_at)
-
-    return {
-        "status": "success",
-        "otp_id": otp_id,
-        "code": otp_code,   # chỉ để test dev, production phải bỏ
-        "message": "OTP sent"
-    }
-
-
-def verify_otp(user_id, code, purpose="transaction"):
-    otp = OTPModel.get_latest(user_id, purpose)
+# =====================
+# INTERNAL UTIL (CHECK DB)
+# =====================
+def verify_otp_util(user_id, otp_code, purpose="transaction"):
+    otp = OTPModel.get_latest_valid_otp(user_id, purpose)
+    print("DEBUG: OTP fetched from DB:", otp)
 
     if not otp:
-        return {"status": "error", "message": "OTP not found or expired"}
+        return False, "OTP not found"
 
-    if otp["CODE"] != code:
-        return {"status": "error", "message": "Incorrect OTP"}
+    if otp["CODE"] != otp_code:
+        return False, "Invalid OTP"
 
-    if otp["IS_USED"]:
-        return {"status": "error", "message": "OTP already used"}
+    # Convert EXPIRES_AT to datetime if it's string
+    expires_at = otp["EXPIRES_AT"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.datetime.strptime(expires_at, "%Y-%m-%d %H:%M:%S")
+    if expires_at < datetime.datetime.now():
+        return False, "OTP expired"
 
     OTPModel.mark_used(otp["OTP_ID"])
+    return True, "OTP valid"
 
-    return {"status": "success", "message": "OTP verified"}
-
-
-def list_otps():
-    return {
-        "status": "success",
-        "data": OTPModel.list_all()
-    }
-
-
+# =====================
+# API FUNCTION
+# =====================
 def create_otp(user_id, purpose="transaction"):
-    res = send_otp(user_id, purpose)
-    return res["otp_id"], res["code"]
+    otp_code = generate_otp_code()
 
+    # Thời gian expire để test: forgot_password 5 phút, transaction 10 phú
+    expires_at = (
+        datetime.datetime.now() + datetime.timedelta(minutes=5)
+        if purpose == "forgot_password"
+        else datetime.datetime.now() + datetime.timedelta(minutes=10)
+    )
 
-def verify_otp_util(user_id, code, purpose="transaction"):
-    res = verify_otp(user_id, code, purpose)
-    if res["status"] == "success":
-        return True, res["message"]
-    return False, res["message"]
+    otp_id = OTPModel.create(user_id, otp_code, purpose, expires_at)
+    print(f"DEBUG: Created OTP {otp_code} for user {user_id}, expires at {expires_at}")
+
+    user = get_user_by_id(user_id)
+    if user and user.get("EMAIL"):
+        html = otp_email_template(otp_code, purpose)
+        send_email(
+            user["EMAIL"],
+            "Your OTP Code - ZY Banking",
+            html
+        )
+
+    return otp_id, otp_code

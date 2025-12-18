@@ -4,14 +4,12 @@ from services.security_utils import (
     create_refresh_token,
     store_refresh_token,
     revoke_refresh_token,
-    blacklist_access_token
+    blacklist_access_token,
+    decode_access_token
 )
 from services.otp_service import create_otp, verify_otp_util
-from firebase_admin import auth as fb_auth
-
 from db import get_conn
 import jwt
-from datetime import datetime, timedelta
 from config import JWT_SECRET, JWT_ALGORITHM
 
 
@@ -71,15 +69,28 @@ def login(data):
 
 def logout(data, auth_header=None):
     refresh_token = data.get('refresh_token')
-
     if not refresh_token:
         return {"status":"error","message":"refresh_token required","status_code":400}
-    
-    revoke_refresh_token(refresh_token)
 
+    user_id = None
     if auth_header and auth_header.startswith('Bearer '):
         access = auth_header.split(' ')[1]
-        blacklist_access_token(access)
+        payload, err = decode_access_token(access)
+        if not err:
+            user_id = payload.get("sub")
+            blacklist_access_token(access)
+
+    if user_id:
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE REFRESH_TOKEN SET REVOKED=1 WHERE TOKEN=%s AND USER_ID=%s",
+                    (refresh_token, user_id)
+                )
+            conn.commit()
+        finally:
+            conn.close()
 
     return {"status":"success","message":"logged out"}
 
@@ -137,42 +148,6 @@ def refresh(data):
     }
 
 
-# ========================
-# OTP
-# ========================
-
-def send_otp(data):
-    user_id = data.get('USER_ID')
-    purpose = data.get('PURPOSE', 'transaction')
-
-    if not user_id:
-        return {"status":"error","message":"USER_ID required","status_code":400}
-
-    otp_id, code = create_otp(user_id, purpose=purpose)
-
-    return {
-        "status":"success",
-        "data":{
-            "otp_id": otp_id,
-            "otp_code_dev": code
-        }
-    }
-
-
-def verify_otp(data):
-    user_id = data.get('USER_ID')
-    code = data.get('CODE')
-    purpose = data.get('PURPOSE', 'transaction')
-
-    if not user_id or not code:
-        return {"status":"error","message":"USER_ID and CODE required","status_code":400}
-
-    ok, msg = verify_otp_util(user_id, code, purpose=purpose)
-
-    if not ok:
-        return {"status":"error","message": msg,"status_code":400}
-
-    return {"status":"success","message":"otp verified"}
 # --- Change password ---
 def change_password(user_id, data):
     old_password = data.get('old_password')
@@ -206,20 +181,28 @@ def forgot_password(data):
 
     otp_id, code = create_otp(user['USER_ID'], purpose='forgot_password')
 
-    return {"status":"success","message":"OTP sent", "data": {"otp_id": otp_id, "otp_code_dev": code}}
-
+    return {
+        "status":"success",
+        "message":"OTP sent",
+        "data": {
+            "user_id": user['USER_ID'],
+            "otp_id": otp_id,
+            "otp_code_dev": code
+        }
+    }
 
 def reset_password(data):
-    user_id = data.get('USER_ID')
+    user_id = data.get('user_id')   # sửa dòng này
     otp_code = data.get('otp_code')
     new_password = data.get('new_password')
 
     if not user_id or not otp_code or not new_password:
-        return {"status":"error","message":"USER_ID, otp_code, new_password required","status_code":400}
+        return {"status":"error","message":"Missing fields","status_code":400}
 
     ok, msg = verify_otp_util(user_id, otp_code, purpose='forgot_password')
+
     if not ok:
-        return {"status":"error","message": msg,"status_code":400}
+        return {"status":"error","message":msg,"status_code":400}
 
     update_user_password(user_id, new_password)
     return {"status":"success","message":"Password reset successfully"}

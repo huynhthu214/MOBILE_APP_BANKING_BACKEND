@@ -7,11 +7,12 @@ def generate_otp_id():
             cur.execute("SELECT OTP_ID FROM OTP ORDER BY OTP_ID DESC LIMIT 1")
             last = cur.fetchone()
             if last and last["OTP_ID"]:
-                num = int(last["OTP_ID"][1:]) + 1
-                return f"O{num:03d}"
-            return "O001"
+                num = int(last["OTP_ID"][3:]) + 1
+                return f"OTP{num:03d}"
+            return "OTP001"
     finally:
         conn.close()
+
 class OTPModel:
     TABLE_NAME = "OTP"
 
@@ -32,17 +33,24 @@ class OTPModel:
             conn.close()
 
         return otp_id
+
     @staticmethod
-    def get_latest(user_id, purpose):
+    def get_latest_valid_otp(user_id, purpose):
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                cur.execute(f"""
-                    SELECT * FROM {OTPModel.TABLE_NAME}
-                    WHERE USER_ID=%s AND PURPOSE=%s AND IS_USED=0
-                    ORDER BY CREATED_AT DESC LIMIT 1
-                """, (user_id, purpose))
-                return cur.fetchone()
+                sql = """
+                    SELECT * FROM OTP 
+                    WHERE USER_ID = %s 
+                    AND PURPOSE = %s 
+                    AND IS_USED = 0 
+                    AND EXPIRES_AT > NOW()
+                    ORDER BY CREATED_AT DESC 
+                    LIMIT 1
+                """
+                cur.execute(sql, (user_id, purpose))
+                result = cur.fetchone()
+                return result
         finally:
             conn.close()
 
@@ -53,15 +61,5 @@ class OTPModel:
             with conn.cursor() as cur:
                 cur.execute(f"UPDATE {OTPModel.TABLE_NAME} SET IS_USED=1 WHERE OTP_ID=%s", (otp_id,))
                 conn.commit()
-        finally:
-            conn.close()
-
-    @staticmethod
-    def list_all():
-        conn = get_conn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute(f"SELECT * FROM {OTPModel.TABLE_NAME} ORDER BY CREATED_AT DESC")
-                return cur.fetchall()
         finally:
             conn.close()

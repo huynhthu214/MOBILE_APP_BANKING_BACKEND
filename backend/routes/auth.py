@@ -1,18 +1,15 @@
 from flask import Blueprint, request, jsonify
-import jwt
-from config import JWT_SECRET, JWT_ALGORITHM
 from services.auth_service import (
     login,
     logout,
-    refresh
+    refresh,
+    forgot_password,
+    reset_password
 )
+
 from services.user_service import get_me
 from services.security_utils import decode_access_token
-import firebase_admin
-from firebase_admin import credentials
 
-cred = credentials.Certificate("firebase_admin_key.json")
-firebase_admin.initialize_app(cred)
 bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
 @bp.route('/login', methods=['POST'])
@@ -68,30 +65,6 @@ def me_route():
         "status": "success",
         "data": data
     })
-
-@bp.route('/change-password', methods=['POST'])
-def change_password_route():
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({"status":"error","message":"Missing access token"}), 401
-
-    token = auth_header.split(' ')[1]
-
-    # Decode token
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get('type') != 'access':
-            return jsonify({"status":"error","message":"Invalid token type"}), 401
-    except jwt.ExpiredSignatureError:
-        return jsonify({"status":"error","message":"Token expired"}), 401
-    except Exception as e:
-        return jsonify({"status":"error","message":"Invalid token"}), 401
-
-    user_id = payload.get("sub")
-    data = request.get_json()
-    result = change_password(user_id, data)
-    return jsonify(result), result.get("status_code", 200)
-
 
 @bp.route('/forgot-password', methods=['POST'])
 def forgot_password_route():
