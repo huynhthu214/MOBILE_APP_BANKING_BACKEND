@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "zybanking",
+  "private_key_id": "481efe7e91d6dcf582c6c0bd38d3309a7075dc2c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCjCiIWk13otL6J\nrnCIC54HER511UAHqaUpgcf8aeQjErSjIyZ89272Y1HE2P/+HStZ+1/kbuN7nHcH\nHHPVmnIOq1v+QfPYmfDrlb+mKouAP4wylkAHbQMKsCeAMcvnTtEGJMW8q7lPmAVi\ndmkBSnvBxbTbYmlfOaugNv+y3Leyu3S1F6O/iC2abOJGdh9b5TF5Tsr9Qi7WVIzo\n8YW97iuKiiqBlOPDeoGH9y328H+Kf0UVlFxiDQX5Jfck0KBrT4029teU1vgOHZcb\nNJ5H3Drspm3p2mJyVoosAeIMzu3URuXOIwJc/aQtN75XXe9t0fQZWTAJ/qt/dIeo\nUovJdK6xAgMBAAECggEAAkyzaiLaO1zoRpgep3aVfCdISRRwzqLcjOMzG0rxkDKU\neGwXoAHb7277cWW3p6GI8eAXLElJnV3ZunCS7C99XhpZ5fJPco3KTYJbVYhKVyze\nSPzgSpKFrVYKepcJN5ofneDxJo38A0TDR64goUdoCzXDDSicUJ7nPi9kaCUPlL5l\nFQon1iWD/C5shxuTz05DoVOPO/ybFjpRVLlXVcH1dKjMqFsRXBsDwNkUMu404Gji\ng8aKwEQy0t9SYc9CTASWVJ4qtrVIISeJ94IkamRgcslgg9bYkxo7K2B+aBjYaubi\negOiqXxasbjThIql665ZsqHUtAd/BugTEi9Jcqf5OQKBgQDjwBv1dJwGAHrsyLhP\nJsRrLWPtt0OL0miOTcrwaf5wpKvuJhARXecKXfHpNO51/vClFjXq0x2ylnfV4nyC\nco105I/hvSYjvlNPHehQGNRFQTGSVCTz/jTIeEQSmSWtm0KsQDyMn6AnmK7bA7XN\nXcwIg5eJRpDFXjpd54Y+PqyJCQKBgQC3QzkgnxXMXPBX3eGP2bdPtHIidkMFg9O+\n5b1LLvPKX8GxJnTNpAbrws01hfjQJqR9Z4TK/rr1V+iHe/aMveeyjrUa6xzZCZKm\nsO9payabKu8CpKrllqFr9UNA3qouduYkDMdb2LV4Z6oFL2aCAHBwUK+Fxs0eEJUc\nWnjWOs0qaQKBgQDc0UjKZfNYxmJo7fv1kkri97FprERrbug9ASQAkWRHZwHj9zeg\n/wChxpBkYhPKiBJenfhM48BphQZPdDbwa4zHh0wRvMkb4s73aLHz5v743srna3og\nr5oRvLmTprUna9/rDqUmWyZ2/cybQS+mHIlUv/HPAYIgOsowfehktXOnsQKBgG7A\nS2fxfETy7bTMPKKommWq0UcOXVaZ4n99a7Zh+6cT04RxjykvtZcJNObhvgpdMA8x\nXkknRGk85SPrwIYxxjJcmApaiCaJ6HygdS8qODyR57ubNERnkcoigLBVYFeQN2kV\n5+0TvCe1zkQv7y0lgs39lPWtvQwsTVDDRD+DbbXxAoGBAJVpA67CWbjofgPgrpK+\ndnCaOqNe+yo7flHLSiGMXIhFADPlKinpDw700QIpiw1/wEroOGMEOni7i1v0DIlx\n/EwXqD+Es7LB/+EkUy5SMl290oBMXoALw7Ux+cudmlq07kmWLQCInRS2uTtrIxnB\no8ART1QNdhe0Q3/o41dPZi/2\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@zybanking.iam.gserviceaccount.com",
+  "client_id": "118415987146340127108",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40zybanking.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

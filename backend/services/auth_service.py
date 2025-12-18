@@ -4,11 +4,11 @@ from services.security_utils import (
     create_refresh_token,
     store_refresh_token,
     revoke_refresh_token,
-    blacklist_access_token,
-    hash_password,
-    verify_password
+    blacklist_access_token
 )
 from services.otp_service import create_otp, verify_otp_util
+from firebase_admin import auth as fb_auth
+
 from db import get_conn
 import jwt
 from datetime import datetime, timedelta
@@ -67,6 +67,7 @@ def login(data):
             "user": safe_user
         }
     }
+
 
 def logout(data, auth_header=None):
     refresh_token = data.get('refresh_token')

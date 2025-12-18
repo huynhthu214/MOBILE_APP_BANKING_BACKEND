@@ -4,14 +4,15 @@ from config import JWT_SECRET, JWT_ALGORITHM
 from services.auth_service import (
     login,
     logout,
-    refresh,
-    change_password,
-    forgot_password,
-    reset_password
+    refresh
 )
 from services.user_service import get_me
 from services.security_utils import decode_access_token
+import firebase_admin
+from firebase_admin import credentials
 
+cred = credentials.Certificate("firebase_admin_key.json")
+firebase_admin.initialize_app(cred)
 bp = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
 @bp.route('/login', methods=['POST'])

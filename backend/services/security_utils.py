@@ -1,4 +1,3 @@
-import bcrypt
 import jwt
 import datetime
 from db import get_conn

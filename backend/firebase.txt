@@ -1,0 +1,19 @@
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEwTpyZd_tkOAj_CaMqyJQ8lCIZVN7N_0",
+    authDomain: "zybanking.firebaseapp.com",
+    projectId: "zybanking",
+    storageBucket: "zybanking.firebasestorage.app",
+    messagingSenderId: "640726802588",
+    appId: "1:640726802588:web:1a5597334405a596e58d59"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>

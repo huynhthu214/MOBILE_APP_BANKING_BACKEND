@@ -1,227 +1,221 @@
+
 /*==============================================================*/
-/* DBMS name:      MySQL 5.0                                    */
-/* Created on:     06/12/2025                                   */
+/* Table: ACCOUNT                                               */
 /*==============================================================*/
-
-/*================== Table: USER_BIOMETRIC =====================*/
-CREATE TABLE USER_BIOMETRIC (
-    BIOMETRIC_ID varchar(10) NOT NULL,
-    USER_ID varchar(10),
-    FACE_TEMPLATE_HASH text,
-    DEVICE_BIOMETRIC bool,
-    FACE_ENABLED bool,
-    CREATED_AT datetime,
-    PRIMARY KEY (BIOMETRIC_ID)
+create table ACCOUNT
+(
+   ACCOUNT_ID           varchar(10) not null  comment '',
+   MORTAGE_ACC_ID       varchar(10)  comment '',
+   USER_ID              varchar(10)  comment '',
+   SAVING_ACC_ID        varchar(10)  comment '',
+   ACCOUNT_TYPE         text  comment '',
+   BALANCE              float  comment '',
+   INTEREST_RATE        float  comment '',
+   CREATED_AT           datetime  comment '',
+   STATUS               text  comment '',
+   ACCOUNT_NUMBER       text  comment '',
+   primary key (ACCOUNT_ID)
 );
 
-/*================== Table: USER ================================*/
-CREATE TABLE USER (
-    USER_ID varchar(10) NOT NULL,
-    BIOMETRIC_ID varchar(10),
-    EKYC_ID varchar(10),
-    FULL_NAME text,
-    EMAIL text,
-    PHONE text,
-    ROLE text,
-    CREATED_AT datetime,
-    PASSWORD text,
-    PRIMARY KEY (USER_ID)
+/*==============================================================*/
+/* Table: BILL                                                  */
+/*==============================================================*/
+create table BILL
+(
+   BILL_ID              varchar(10) not null  comment '',
+   PROVIDER             varchar(100)  comment '',
+   AMOUNT_DUE           datetime  comment '',
+   STATUS               text  comment '',
+   DUE_DATE             datetime  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (BILL_ID)
 );
 
-/*================== Table: EKYC ================================*/
-CREATE TABLE EKYC (
-    EKYC_ID varchar(10) NOT NULL,
-    USER_ID varchar(10),
-    IMG_FRONT_URL text,
-    IMG_BACK_URL text,
-    SELFIE_URL text,
-    STATUS text,
-    REVIEWED_AT varchar(30),
-    REVIEWED_BY varchar(30),
-    CREATED_AT datetime,
-    PRIMARY KEY (EKYC_ID)
+/*==============================================================*/
+/* Table: BILL_PAYMENT                                          */
+/*==============================================================*/
+create table BILL_PAYMENT
+(
+   PAYMENT_ID           varchar(10) not null  comment '',
+   TRANSACTION_ID       varchar(10)  comment '',
+   BILL_ID              varchar(10)  comment '',
+   PAID_AT              datetime  comment '',
+   primary key (PAYMENT_ID)
 );
 
-/*================== Table: ACCOUNT =============================*/
-CREATE TABLE ACCOUNT (
-    ACCOUNT_ID varchar(10) NOT NULL,
-    MORTAGE_ACC_ID varchar(10),
-    USER_ID varchar(10),
-    SAVING_ACC_ID varchar(10),
-    ACCOUNT_TYPE text,
-    BALANCE float,
-    INTEREST_RATE float,
-    CREATED_AT datetime,
-    STATUS text,
-    ACCOUNT_NUMBER text,
-    PRIMARY KEY (ACCOUNT_ID)
+/*==============================================================*/
+/* Table: EKYC                                                  */
+/*==============================================================*/
+create table EKYC
+(
+   EKYC_ID              varchar(10) not null  comment '',
+   USER_ID              varchar(10)  comment '',
+   IMG_FRONT_URL        text  comment '',
+   IMG_BACK_URL         text  comment '',
+   SELFIE_URL           text  comment '',
+   STATUS               text  comment '',
+   REVIEWED_AT          varchar(30)  comment '',
+   REVIEWED_BY          varchar(30)  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (EKYC_ID)
 );
 
-/*================== Table: SAVING_DETAIL =======================*/
-CREATE TABLE SAVING_DETAIL (
-    SAVING_ACC_ID varchar(10) NOT NULL,
-    ACCOUNT_ID varchar(10),
-    PRINCIPAL_AMOUNT float,
-    INTEREST_RATE float,
-    TERM_MONTHS int,
-    START_DATE datetime,
-    MATURITY_DATE datetime,
-    PRIMARY KEY (SAVING_ACC_ID)
+/*==============================================================*/
+/* Table: EXTERNAL_ACCOUNT                                      */
+/*==============================================================*/
+create table EXTERNAL_ACCOUNT
+(
+   EX_ACC_ID            varchar(10) not null  comment '',
+   BANK_CODE            text  comment '',
+   ACCOUNT_NUMBER       text  comment '',
+   ACCOUNT_NAME         text  comment '',
+   primary key (EX_ACC_ID)
 );
 
-/*================== Table: MORTAGE_DETAIL ======================*/
-CREATE TABLE MORTAGE_DETAIL (
-    MORTAGE_ACC_ID varchar(10) NOT NULL,
-    ACCOUNT_ID varchar(10),
-    TOTAL_LOAN_AMOUNT float,
-    REMAINING_BALANCE float,
-    PAYMEN_FREQUENCY varchar(20),
-    PAYMENT_AMOUNT float,
-    NEXT_PAYMENT_DATE datetime,
-    LOAN_END_DATE datetime,
-    PRIMARY KEY (MORTAGE_ACC_ID)
+/*==============================================================*/
+/* Table: LOCATION                                              */
+/*==============================================================*/
+create table LOCATION
+(
+   BRANCH_ID            varchar(10) not null  comment '',
+   NAME                 text  comment '',
+   ADDRESS              text  comment '',
+   LAT                  float  comment '',
+   LNG                  float  comment '',
+   OPEN_HOURS           varchar(30)  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (BRANCH_ID)
 );
 
-/*================== Table: TRANSACTION =========================*/
-CREATE TABLE TRANSACTION (
-    TRANSACTION_ID varchar(10) NOT NULL,
-    PAYMENT_ID varchar(10),
-    ACCOUNT_ID varchar(10),
-    AMOUNT float,
-    CURRENCY varchar(100),
-    ACCOUNT_TYPE text,
-    STATUS text,
-    CREATED_AT datetime,
-    COMPLETE_AT datetime,
-    DEST_ACC_NUM varchar(20),
-    DEST_ACC_NAME text,
-    DEST_BANK_CODE varchar(20),
-    TYPE text,
-    PRIMARY KEY (TRANSACTION_ID)
+/*==============================================================*/
+/* Table: MORTAGE_DETAIL                                        */
+/*==============================================================*/
+create table MORTAGE_DETAIL
+(
+   MORTAGE_ACC_ID       varchar(10) not null  comment '',
+   ACCOUNT_ID           varchar(10)  comment '',
+   TOTAL_LOAN_AMOUNT    float  comment '',
+   REMAINING_BALANCE    float  comment '',
+   PAYMEN_FREQUENCY     varchar(20)  comment '',
+   PAYMENT_AMOUNT       float  comment '',
+   NEXT_PAYMENT_DATE    datetime  comment '',
+   LOAN_END_DATE        datetime  comment '',
+   primary key (MORTAGE_ACC_ID)
 );
 
-/*================== Table: BILL ================================*/
-CREATE TABLE BILL (
-    BILL_ID varchar(10) NOT NULL,
-    PROVIDER varchar(100),
-    AMOUNT_DUE datetime,
-    STATUS text,
-    DUE_DATE datetime,
-    CREATED_AT datetime,
-    PRIMARY KEY (BILL_ID)
+/*==============================================================*/
+/* Table: OTP                                                   */
+/*==============================================================*/
+create table OTP
+(
+   OTP_ID               varchar(10) not null  comment '',
+   USER_ID              varchar(10)  comment '',
+   CODE                 varchar(10)  comment '',
+   PURPOSE              text  comment '',
+   CREATED_AT           datetime  comment '',
+   EXPIRES_AT           datetime  comment '',
+   IS_USED              bool  comment '',
+   primary key (OTP_ID)
 );
 
-/*================== Table: BILL_PAYMENT ========================*/
-CREATE TABLE BILL_PAYMENT (
-    PAYMENT_ID varchar(10) NOT NULL,
-    TRANSACTION_ID varchar(10),
-    BILL_ID varchar(10),
-    PAID_AT datetime,
-    PRIMARY KEY (PAYMENT_ID)
+/*==============================================================*/
+/* Table: SAVING_DETAIL                                         */
+/*==============================================================*/
+create table SAVING_DETAIL
+(
+   SAVING_ACC_ID        varchar(10) not null  comment '',
+   ACCOUNT_ID           varchar(10)  comment '',
+   PRINCIPAL_AMOUNT     float  comment '',
+   INTEREST_RATE        float  comment '',
+   TERM_MONTHS          int  comment '',
+   START_DATE           datetime  comment '',
+   MATURITY_DATE        datetime  comment '',
+   primary key (SAVING_ACC_ID)
 );
 
-/*================== Table: UTILITY_PAYMENT ====================*/
-CREATE TABLE UTILITY_PAYMENT (
-    UTILITY_PAYMENT_ID varchar(10) NOT NULL,
-    TRANSACTION_ID varchar(10),
-    PROVIDER_CODE varchar(50),
-    REFERENCE_CODE_1 varchar(100),
-    REFERENCE_CODE_2 varchar(100),
-    CREATED_AT datetime,
-    PRIMARY KEY (UTILITY_PAYMENT_ID)
+/*==============================================================*/
+/* Table: TRANSACTIONS                                          */
+/*==============================================================*/
+create table TRANSACTIONS
+(
+   TRANSACTION_ID       varchar(10) not null  comment '',
+   PAYMENT_ID           varchar(10)  comment '',
+   ACCOUNT_ID           varchar(10)  comment '',
+   AMOUNT               float  comment '',
+   CURRENCY             varchar(100)  comment '',
+   ACCOUNT_TYPE         text  comment '',
+   STATUS               text  comment '',
+   CREATED_AT           datetime  comment '',
+   COMPLETE_AT          datetime  comment '',
+   DEST_ACC_NUM         varchar(20)  comment '',
+   DEST_ACC_NAME        text  comment '',
+   DEST_BANK_CODE       varchar(20)  comment '',
+   TYPE                 text  comment '',
+   primary key (TRANSACTION_ID)
 );
 
-/*================== Table: OTP =================================*/
-CREATE TABLE OTP (
-    OTP_ID varchar(10) NOT NULL,
-    USER_ID varchar(10),
-    CODE varchar(10),
-    PURPOSE text,
-    CREATED_AT datetime,
-    EXPIRES_AT datetime,
-    IS_USED bool,
-    PRIMARY KEY (OTP_ID)
+/*==============================================================*/
+/* Table: USER                                                  */
+/*==============================================================*/
+create table USER
+(
+   USER_ID              varchar(10) not null  comment '',
+   BIOMETRIC_ID         varchar(10)  comment '',
+   EKYC_ID              varchar(10)  comment '',
+   FULL_NAME            text  comment '',
+   EMAIL                text  comment '',
+   PHONE                text  comment '',
+   ROLE                 text  comment '',
+   CREATED_AT           datetime  comment '',
+   PASSWORD             text  comment '',
+   IS_ACTIVE            bool  comment '',
+   primary key (USER_ID)
 );
 
-/*================== Table: REFRESH_TOKEN ======================*/
-CREATE TABLE REFRESH_TOKEN (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    USER_ID varchar(10) NOT NULL,
-    TOKEN text NOT NULL,
-    CREATED_AT datetime NOT NULL,
-    EXPIRES_AT datetime NOT NULL,
-    REVOKED bool DEFAULT 0
+/*==============================================================*/
+/* Table: USER_BIOMETRIC                                        */
+/*==============================================================*/
+create table USER_BIOMETRIC
+(
+   BIOMETRIC_ID         varchar(10) not null  comment '',
+   USER_ID              varchar(10)  comment '',
+   FACE_TEMPLATE_HASH   text  comment '',
+   DEVICE_BIOMETRIC     bool  comment '',
+   FACE_ENABLED         bool  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (BIOMETRIC_ID)
+);
+
+/*==============================================================*/
+/* Table: UTILITY_PAYMENT                                       */
+/*==============================================================*/
+create table UTILITY_PAYMENT
+(
+   UTILITY_PAYMENT_ID   varchar(10) not null  comment '',
+   TRANSACTION_ID       varchar(10)  comment '',
+   PROVIDER_CODE        varchar(50)  comment '',
+   REFERENCE_CODE_1     varchar(100)  comment '',
+   REFERENCE_CODE_2     varchar(100)  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (UTILITY_PAYMENT_ID)
+);
+
+/*================== Table: REFRESH_TOKEN ======================*/ 
+CREATE TABLE REFRESH_TOKEN 
+( 
+ID INT AUTO_INCREMENT PRIMARY KEY,
+ USER_ID varchar(10) NOT NULL,
+ TOKEN text NOT NULL,
+ CREATED_AT datetime NOT NULL,
+ EXPIRES_AT datetime NOT NULL,
+ REVOKED bool DEFAULT 0 
 );
 
 /*================== Table: TOKEN_BLACKLIST ====================*/
-CREATE TABLE TOKEN_BLACKLIST (
-    TOKEN_ID varchar(10) NOT NULL,
-    TOKEN text,
-    BLACKLISTED_AT datetime,
-    PRIMARY KEY (TOKEN_ID)
-);
-
-/*================== Table: LOCATION ============================*/
-CREATE TABLE LOCATION (
-    BRANCH_ID varchar(10) NOT NULL,
-    NAME text,
-    ADDRESS text,
-    LAT float,
-    LNG float,
-    OPEN_HOURS varchar(30),
-    CREATED_AT datetime,
-    PRIMARY KEY (BRANCH_ID)
-);
-
-/*================== Table: EXTERNAL_ACCOUNT ===================*/
-CREATE TABLE EXTERNAL_ACCOUNT (
-    EX_ACC_ID varchar(10) NOT NULL,
-    BANK_CODE text,
-    ACCOUNT_NUMBER text,
-    ACCOUNT_NAME text,
-    PRIMARY KEY (EX_ACC_ID)
-);
-
-/*================== FOREIGN KEY CONSTRAINTS ===================*/
-ALTER TABLE USER ADD CONSTRAINT FK_USER_USER_BIOM_USER_BIO FOREIGN KEY (BIOMETRIC_ID)
-    REFERENCES USER_BIOMETRIC(BIOMETRIC_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE USER ADD CONSTRAINT FK_USER_USER_EKYC_EKYC FOREIGN KEY (EKYC_ID)
-    REFERENCES EKYC(EKYC_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE ACCOUNT ADD CONSTRAINT FK_ACCOUNT_ACCOUNT_M_MORTAGE_ FOREIGN KEY (MORTAGE_ACC_ID)
-    REFERENCES MORTAGE_DETAIL(MORTAGE_ACC_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE ACCOUNT ADD CONSTRAINT FK_ACCOUNT_ACCOUNT_S_SAVING_D FOREIGN KEY (SAVING_ACC_ID)
-    REFERENCES SAVING_DETAIL(SAVING_ACC_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE ACCOUNT ADD CONSTRAINT FK_ACCOUNT_USER_ACCO_USER FOREIGN KEY (USER_ID)
-    REFERENCES USER(USER_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE SAVING_DETAIL ADD CONSTRAINT FK_SAVING_D_ACCOUNT_S_ACCOUNT FOREIGN KEY (ACCOUNT_ID)
-    REFERENCES ACCOUNT(ACCOUNT_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE MORTAGE_DETAIL ADD CONSTRAINT FK_MORTAGE__ACCOUNT_M_ACCOUNT FOREIGN KEY (ACCOUNT_ID)
-    REFERENCES ACCOUNT(ACCOUNT_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE TRANSACTION ADD CONSTRAINT FK_TRANSACT_ACCOUNT_T_ACCOUNT FOREIGN KEY (ACCOUNT_ID)
-    REFERENCES ACCOUNT(ACCOUNT_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE TRANSACTION ADD CONSTRAINT FK_TRANSACT_TRANSAC_P_BILL_PAY FOREIGN KEY (PAYMENT_ID)
-    REFERENCES BILL_PAYMENT(PAYMENT_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE BILL_PAYMENT ADD CONSTRAINT FK_BILL_PAY_BILL_BILL_BILL FOREIGN KEY (BILL_ID)
-    REFERENCES BILL(BILL_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE BILL_PAYMENT ADD CONSTRAINT FK_BILL_PAY_TRANSAC_P_TRANSACT FOREIGN KEY (TRANSACTION_ID)
-    REFERENCES TRANSACTION(TRANSACTION_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE UTILITY_PAYMENT ADD CONSTRAINT FK_UTILITY__TRANSAC_U_TRANSACT FOREIGN KEY (TRANSACTION_ID)
-    REFERENCES TRANSACTION(TRANSACTION_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE OTP ADD CONSTRAINT FK_OTP_USER_OTP_USER FOREIGN KEY (USER_ID)
-    REFERENCES USER(USER_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
-ALTER TABLE REFRESH_TOKEN ADD CONSTRAINT FK_REFRESH_USER FOREIGN KEY (USER_ID)
-    REFERENCES USER(USER_ID) ON DELETE RESTRICT ON UPDATE RESTRICT;
+CREATE TABLE TOKEN_BLACKLIST 
+(
+TOKEN_ID varchar(10) NOT NULL,
+TOKEN text, 
+BLACKLISTED_AT datetime,
+ PRIMARY KEY (TOKEN_ID) );
 
