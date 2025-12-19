@@ -10,7 +10,7 @@ def generate_otp_code(length=6):
 # =====================
 # INTERNAL UTIL (CHECK DB)
 # =====================
-def verify_otp_util(user_id, otp_code, purpose="transaction"):
+def verify_otp_util(user_id, otp_code, purpose="transaction", mark_used=True):
     otp = OTPModel.get_latest_valid_otp(user_id, purpose)
     print("DEBUG: OTP fetched from DB:", otp)
 
@@ -27,7 +27,8 @@ def verify_otp_util(user_id, otp_code, purpose="transaction"):
     if expires_at < datetime.datetime.now():
         return False, "OTP expired"
 
-    OTPModel.mark_used(otp["OTP_ID"])
+    if mark_used:
+        OTPModel.mark_used(otp["OTP_ID"])
     return True, "OTP valid"
 
 # =====================
