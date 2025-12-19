@@ -63,3 +63,13 @@ class OTPModel:
                 conn.commit()
         finally:
             conn.close()
+
+    @staticmethod
+    def list_all():
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(f"SELECT * FROM {OTPModel.TABLE_NAME} ORDER BY CREATED_AT DESC")
+                return cur.fetchall()
+        finally:
+            conn.close()
