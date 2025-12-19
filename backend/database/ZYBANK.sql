@@ -46,23 +46,6 @@ CREATE TABLE EKYC (
 );
 
 /*==============================================================*/
-/* Table: EKYC                                                  */
-/*==============================================================*/
-create table EKYC
-(
-   EKYC_ID              varchar(10) not null  comment '',
-   USER_ID              varchar(10)  comment '',
-   IMG_FRONT_URL        text  comment '',
-   IMG_BACK_URL         text  comment '',
-   SELFIE_URL           text  comment '',
-   STATUS               text  comment '',
-   REVIEWED_AT          varchar(30)  comment '',
-   REVIEWED_BY          varchar(30)  comment '',
-   CREATED_AT           datetime  comment '',
-   primary key (EKYC_ID)
-);
-
-/*==============================================================*/
 /* Table: EXTERNAL_ACCOUNT                                      */
 /*==============================================================*/
 create table EXTERNAL_ACCOUNT
@@ -100,35 +83,6 @@ CREATE TABLE MORTAGE_DETAIL (
     NEXT_PAYMENT_DATE datetime,
     LOAN_END_DATE datetime,
     PRIMARY KEY (MORTAGE_ACC_ID)
-);
-
-/*================== Table: TRANSACTION =========================*/
-CREATE TABLE TRANSACTION (
-    TRANSACTION_ID varchar(10) NOT NULL,
-    PAYMENT_ID varchar(10),
-    ACCOUNT_ID varchar(10),
-    AMOUNT float,
-    CURRENCY varchar(100),
-    ACCOUNT_TYPE text,
-    STATUS text,
-    CREATED_AT datetime,
-    COMPLETE_AT datetime,
-    DEST_ACC_NUM varchar(20),
-    DEST_ACC_NAME text,
-    DEST_BANK_CODE varchar(20),
-    TYPE text,
-    PRIMARY KEY (TRANSACTION_ID)
-);
-
-/*================== Table: BILL ================================*/
-CREATE TABLE BILL (
-    BILL_ID varchar(10) NOT NULL,
-    PROVIDER varchar(100),
-    AMOUNT_DUE datetime,
-    STATUS text,
-    DUE_DATE datetime,
-    CREATED_AT datetime,
-    PRIMARY KEY (BILL_ID)
 );
 
 /*==============================================================*/
@@ -214,4 +168,16 @@ CREATE TABLE TOKEN_BLACKLIST (
   TOKEN varchar(255) NOT NULL,
   BLACKLISTED_AT datetime NOT NULL,
   PRIMARY KEY (TOKEN)
+);
+
+CREATE TABLE SAVING_DETAIL
+(
+   SAVING_ACC_ID      varchar(10) NOT NULL,
+   ACCOUNT_ID         varchar(10),
+   PRINCIPAL_AMOUNT   float,
+   INTEREST_RATE      float,
+   TERM_MONTHS        int,
+   START_DATE         datetime,
+   MATURITY_DATE      datetime,
+   PRIMARY KEY (SAVING_ACC_ID)
 );
