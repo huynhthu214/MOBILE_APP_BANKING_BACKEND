@@ -152,3 +152,4 @@ def withdraw_confirm_route():
         data["otp"]
     )
     return jsonify(result), 200 if result["status"] == "success" else 400
+

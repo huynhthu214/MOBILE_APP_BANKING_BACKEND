@@ -1,4 +1,3 @@
-# routes/payments.py
 from flask import Blueprint, request, jsonify
 from services.payment_service import (
     list_bills_service,

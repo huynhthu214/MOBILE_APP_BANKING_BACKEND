@@ -169,4 +169,3 @@ def utility_topup_confirm_service(transaction_id, otp_code):
         return {"status": "error", "message": str(e)}
     finally:
         conn.close()
-
