@@ -31,16 +31,18 @@ create table BILL
    primary key (BILL_ID)
 );
 
-/*==============================================================*/
-/* Table: BILL_PAYMENT                                          */
-/*==============================================================*/
-create table BILL_PAYMENT
-(
-   PAYMENT_ID           varchar(10) not null  comment '',
-   TRANSACTION_ID       varchar(10)  comment '',
-   BILL_ID              varchar(10)  comment '',
-   PAID_AT              datetime  comment '',
-   primary key (PAYMENT_ID)
+/*================== Table: EKYC ================================*/
+CREATE TABLE EKYC (
+    EKYC_ID varchar(10) NOT NULL,
+    USER_ID varchar(10),
+    IMG_FRONT_URL text,
+    IMG_BACK_URL text,
+    SELFIE_URL text,
+    STATUS text,
+    REVIEWED_AT varchar(30),
+    REVIEWED_BY varchar(30),
+    CREATED_AT datetime,
+    PRIMARY KEY (EKYC_ID)
 );
 
 /*==============================================================*/
@@ -87,50 +89,46 @@ create table LOCATION
    primary key (BRANCH_ID)
 );
 
-/*==============================================================*/
-/* Table: MORTAGE_DETAIL                                        */
-/*==============================================================*/
-create table MORTAGE_DETAIL
-(
-   MORTAGE_ACC_ID       varchar(10) not null  comment '',
-   ACCOUNT_ID           varchar(10)  comment '',
-   TOTAL_LOAN_AMOUNT    float  comment '',
-   REMAINING_BALANCE    float  comment '',
-   PAYMEN_FREQUENCY     varchar(20)  comment '',
-   PAYMENT_AMOUNT       float  comment '',
-   NEXT_PAYMENT_DATE    datetime  comment '',
-   LOAN_END_DATE        datetime  comment '',
-   primary key (MORTAGE_ACC_ID)
+/*================== Table: MORTAGE_DETAIL ======================*/
+CREATE TABLE MORTAGE_DETAIL (
+    MORTAGE_ACC_ID varchar(10) NOT NULL,
+    ACCOUNT_ID varchar(10),
+    TOTAL_LOAN_AMOUNT float,
+    REMAINING_BALANCE float,
+    PAYMEN_FREQUENCY varchar(20),
+    PAYMENT_AMOUNT float,
+    NEXT_PAYMENT_DATE datetime,
+    LOAN_END_DATE datetime,
+    PRIMARY KEY (MORTAGE_ACC_ID)
 );
 
-/*==============================================================*/
-/* Table: OTP                                                   */
-/*==============================================================*/
-create table OTP
-(
-   OTP_ID               varchar(10) not null  comment '',
-   USER_ID              varchar(10)  comment '',
-   CODE                 varchar(10)  comment '',
-   PURPOSE              text  comment '',
-   CREATED_AT           datetime  comment '',
-   EXPIRES_AT           datetime  comment '',
-   IS_USED              bool  comment '',
-   primary key (OTP_ID)
+/*================== Table: TRANSACTION =========================*/
+CREATE TABLE TRANSACTION (
+    TRANSACTION_ID varchar(10) NOT NULL,
+    PAYMENT_ID varchar(10),
+    ACCOUNT_ID varchar(10),
+    AMOUNT float,
+    CURRENCY varchar(100),
+    ACCOUNT_TYPE text,
+    STATUS text,
+    CREATED_AT datetime,
+    COMPLETE_AT datetime,
+    DEST_ACC_NUM varchar(20),
+    DEST_ACC_NAME text,
+    DEST_BANK_CODE varchar(20),
+    TYPE text,
+    PRIMARY KEY (TRANSACTION_ID)
 );
 
-/*==============================================================*/
-/* Table: SAVING_DETAIL                                         */
-/*==============================================================*/
-create table SAVING_DETAIL
-(
-   SAVING_ACC_ID        varchar(10) not null  comment '',
-   ACCOUNT_ID           varchar(10)  comment '',
-   PRINCIPAL_AMOUNT     float  comment '',
-   INTEREST_RATE        float  comment '',
-   TERM_MONTHS          int  comment '',
-   START_DATE           datetime  comment '',
-   MATURITY_DATE        datetime  comment '',
-   primary key (SAVING_ACC_ID)
+/*================== Table: BILL ================================*/
+CREATE TABLE BILL (
+    BILL_ID varchar(10) NOT NULL,
+    PROVIDER varchar(100),
+    AMOUNT_DUE datetime,
+    STATUS text,
+    DUE_DATE datetime,
+    CREATED_AT datetime,
+    PRIMARY KEY (BILL_ID)
 );
 
 /*==============================================================*/
