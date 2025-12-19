@@ -17,3 +17,10 @@ JWT_SECRET = os.getenv("JWT_SECRET", "change_this_secret")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_EXPIRE_MIN = int(os.getenv("ACCESS_EXPIRE_MIN", "15"))  # minutes
 REFRESH_EXPIRE_DAYS = int(os.getenv("REFRESH_EXPIRE_DAYS", "7"))  # days
+
+# MAIL CONFIG
+MAIL_HOST = "smtp.gmail.com"
+MAIL_PORT = 587
+MAIL_USERNAME = "minhthuhuynh23@gmail.com"
+MAIL_PASSWORD = "kapendjgusnxwczc"
+MAIL_FROM = "ZY Banking <minhthuhuynh23@gmail.com>"

@@ -26,13 +26,13 @@ VALUES
 ('E005', 'U005', 'front5.jpg', 'back5.jpg', 'selfie5.jpg', 'approved', NOW(), 'officer01', NOW());
 
 /*================== USER ===============================*/
-INSERT INTO USER (USER_ID, BIOMETRIC_ID, EKYC_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, PASSWORD)
+INSERT INTO USER (USER_ID, BIOMETRIC_ID, EKYC_ID, FULL_NAME, EMAIL, PHONE, ROLE, CREATED_AT, PASSWORD, IS_ACTIVE)
 VALUES 
-('U001', 'B001', 'E001', 'Nguyen Van A', 'a@gmail.com', '0123456789', 'customer', NOW(), 'hash123'),
-('U002', 'B002', 'E002', 'Tran Thi B', 'b@gmail.com', '0987654321', 'customer', NOW(), 'hash234'),
-('U003', 'B003', 'E003', 'Le Van C', 'c@gmail.com', '0911223344', 'customer', NOW(), 'hash345'),
-('U004', 'B004', 'E004', 'Pham Thi D', 'd@gmail.com', '0909988776', 'customer', NOW(), 'hash456'),
-('U005', 'B005', 'E005', 'Hoang Van E', 'e@gmail.com', '0933445566', 'customer', NOW(), 'hash567');
+('U001', 'B001', 'E001', 'Nguyen Van A', 'a@gmail.com', '0123456789', 'customer', NOW(), 'hash123', '0'),
+('U002', 'B002', 'E002', 'Tran Thi B', 'b@gmail.com', '0987654321', 'customer', NOW(), 'hash234', '0'),
+('U003', 'B003', 'E003', 'Le Van C', 'c@gmail.com', '0911223344', 'customer', NOW(), 'hash345','0'),
+('U004', 'B004', 'E004', 'Pham Thi D', 'd@gmail.com', '0909988776', 'customer', NOW(), 'hash456','0'),
+('U005', 'B005', 'E005', 'Hoang Van E', 'e@gmail.com', '0933445566', 'customer', NOW(), 'hash567', '0');
 
 /*================== ACCOUNT ============================*/
 INSERT INTO ACCOUNT (ACCOUNT_ID, USER_ID, ACCOUNT_TYPE, BALANCE, INTEREST_RATE, CREATED_AT, STATUS, ACCOUNT_NUMBER)
@@ -61,8 +61,13 @@ VALUES
 ('M004','A004',10000000,9000000,'monthly',833333,NOW(),'2026-08-22'),
 ('M005','A005',25000000,24000000,'monthly',2083333,NOW(),'2027-05-22');
 
+<<<<<<< HEAD
 /*================== TRANSACTION =========================*/
 INSERT INTO TRANSACTION (TRANSACTION_ID, ACCOUNT_ID, AMOUNT, CURRENCY, ACCOUNT_TYPE, STATUS, CREATED_AT, COMPLETE_AT, TYPE)
+=======
+/*================== TRANSACTIONS =========================*/
+INSERT INTO TRANSACTIONS (TRANSACTION_ID, ACCOUNT_ID, AMOUNT, CURRENCY, ACCOUNT_TYPE, STATUS, CREATED_AT, COMPLETE_AT, TYPE)
+>>>>>>> 3613aca5a3aa4a331c9e6ff98f354b06b893c610
 VALUES 
 ('T001','A001',200000,'VND','checking','completed',NOW(),NOW(),'deposit'),
 ('T002','A002',500000,'VND','checking','completed',NOW(),NOW(),'deposit'),

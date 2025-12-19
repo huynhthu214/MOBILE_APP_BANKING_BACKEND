@@ -1,4 +1,3 @@
-import bcrypt
 import jwt
 import datetime
 from db import get_conn
@@ -88,20 +87,22 @@ def blacklist_access_token(token):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO TOKEN_BLACKLIST (TOKEN, BLACKLISTED_AT) VALUES (%s, NOW())",
+                """
+                INSERT IGNORE INTO TOKEN_BLACKLIST (TOKEN, BLACKLISTED_AT)
+                VALUES (%s, NOW())
+                """,
                 (token,)
             )
         conn.commit()
     finally:
         conn.close()
 
-
 def is_blacklisted(token):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT ID FROM TOKEN_BLACKLIST WHERE TOKEN=%s LIMIT 1",
+                "SELECT TOKEN FROM TOKEN_BLACKLIST WHERE TOKEN=%s LIMIT 1",
                 (token,)
             )
             return cur.fetchone() is not None
@@ -110,21 +111,28 @@ def is_blacklisted(token):
 
 
 def decode_access_token(token):
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    # 1. Check blacklist trước
+    if is_blacklisted(token):
+        return None, "Token is blacklisted"
 
+    try:
+        payload = jwt.decode(
+            token,
+            JWT_SECRET,
+            algorithms=[JWT_ALGORITHM]
+        )
+
+        # 2. Validate type
         if payload.get("type") != "access":
             return None, "Invalid token type"
 
-        if is_blacklisted(token):
-            return None, "Token is blacklisted"
-
-        print("Decoded payload:", payload)
-        print("Server now:", datetime.datetime.now())
+        # 3. Validate required fields
+        if not payload.get("sub"):
+            return None, "Invalid token payload"
 
         return payload, None
 
     except jwt.ExpiredSignatureError:
         return None, "Token expired"
-    except Exception:
+    except jwt.InvalidTokenError:
         return None, "Invalid token"

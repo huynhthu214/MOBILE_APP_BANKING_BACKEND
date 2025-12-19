@@ -1,5 +1,5 @@
 from models.account_model import AccountModel, SavingDetailModel, MortageDetailModel
-from models.transaction_model import TransactionModel
+from models.transaction_model import get_transactions, create_transaction
 from services.transaction_service import generate_sequential_id
 from datetime import datetime, timedelta
 # ===== ACCOUNT =====

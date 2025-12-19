@@ -7,11 +7,20 @@ def generate_otp_id():
             cur.execute("SELECT OTP_ID FROM OTP ORDER BY OTP_ID DESC LIMIT 1")
             last = cur.fetchone()
             if last and last["OTP_ID"]:
+<<<<<<< HEAD
                 num = int(last["OTP_ID"][1:]) + 1
                 return f"O{num:03d}"
             return "O001"
     finally:
         conn.close()
+=======
+                num = int(last["OTP_ID"][3:]) + 1
+                return f"OTP{num:03d}"
+            return "OTP001"
+    finally:
+        conn.close()
+
+>>>>>>> 3613aca5a3aa4a331c9e6ff98f354b06b893c610
 class OTPModel:
     TABLE_NAME = "OTP"
 
@@ -32,6 +41,7 @@ class OTPModel:
             conn.close()
 
         return otp_id
+<<<<<<< HEAD
     @staticmethod
     def get_latest(user_id, purpose):
         conn = get_conn()
@@ -43,6 +53,26 @@ class OTPModel:
                     ORDER BY CREATED_AT DESC LIMIT 1
                 """, (user_id, purpose))
                 return cur.fetchone()
+=======
+
+    @staticmethod
+    def get_latest_valid_otp(user_id, purpose):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                sql = """
+                    SELECT * FROM OTP 
+                    WHERE USER_ID = %s 
+                    AND PURPOSE = %s 
+                    AND IS_USED = 0 
+                    AND EXPIRES_AT > NOW()
+                    ORDER BY CREATED_AT DESC 
+                    LIMIT 1
+                """
+                cur.execute(sql, (user_id, purpose))
+                result = cur.fetchone()
+                return result
+>>>>>>> 3613aca5a3aa4a331c9e6ff98f354b06b893c610
         finally:
             conn.close()
 
@@ -55,6 +85,7 @@ class OTPModel:
                 conn.commit()
         finally:
             conn.close()
+<<<<<<< HEAD
 
     @staticmethod
     def list_all():
@@ -65,3 +96,5 @@ class OTPModel:
                 return cur.fetchall()
         finally:
             conn.close()
+=======
+>>>>>>> 3613aca5a3aa4a331c9e6ff98f354b06b893c610

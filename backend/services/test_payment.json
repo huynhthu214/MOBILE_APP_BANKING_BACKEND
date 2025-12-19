@@ -1,0 +1,77 @@
+{
+  "info": {
+    "name": "Payments Service",
+    "_postman_id": "zybank-payments-service",
+    "description": "Test endpoints for payment_service.py",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Bills",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/payments/bills?keyword=",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "payments", "bills"],
+          "query": [{ "key": "keyword", "value": "" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Bill Detail",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/payments/bills/B001",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "payments", "bills", "B001"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Pay Bill",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"account_id\": \"A001\",\n  \"bill_id\": \"B001\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/payments/bills/pay",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "payments", "bills", "pay"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Utility Payment",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"T001\",\n  \"provider_code\": \"WATER\",\n  \"reference_code_1\": \"REF123\",\n  \"reference_code_2\": \"REF456\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/v1/payments/utility-payments",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "5000",
+          "path": ["api", "v1", "payments", "utility-payments"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
