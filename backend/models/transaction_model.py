@@ -3,7 +3,6 @@ from db import get_conn
 from datetime import datetime
 
 
-<<<<<<< HEAD
 class TransactionModel:
     TABLE_NAME = "TRANSACTION"
 
@@ -109,7 +108,6 @@ class TransactionModel:
                 conn.commit()
         finally:
             conn.close()
-=======
 # ============================================================
 # GET ALL / FILTER
 # ============================================================
@@ -291,4 +289,3 @@ def mark_otp_used(otp_id):
             conn.commit()
     finally:
         conn.close()
->>>>>>> 3613aca5a3aa4a331c9e6ff98f354b06b893c610
