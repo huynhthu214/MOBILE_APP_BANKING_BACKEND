@@ -2,6 +2,7 @@ from models.account_model import AccountModel, SavingDetailModel, MortageDetailM
 from models.transaction_model import TransactionModel
 from services.transaction_service import generate_sequential_id
 from datetime import datetime, timedelta
+
 # ===== ACCOUNT =====
 def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status="active", account_number=None):
     account_id = AccountModel.create(
@@ -20,6 +21,14 @@ def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status
 
 def list_accounts():
     return {"status": "success", "data": AccountModel.list_all()}
+
+def get_transactions(account_id, limit=None):
+    # LƯU Ý: Đảm bảo bạn đã thêm hàm get_by_account vào TransactionModel như hướng dẫn trước
+    # Nếu chưa, hãy đổi dòng dưới thành: txs = TransactionModel.list_all(account_id)
+    txs = TransactionModel.get_by_account(account_id) 
+    if limit:
+        return txs[:limit]
+    return txs
 
 def get_account(account_id):
     account = AccountModel.get_by_id(account_id)
@@ -40,6 +49,7 @@ def get_account_summary(account_id):
 
     # CHECKING
     if acc_type == "checking":
+        # Hàm này gọi get_transactions đã định nghĩa ở trên -> OK
         txs = get_transactions(account_id)
         last_10 = txs[:10] if len(txs) >= 10 else txs
 
@@ -87,7 +97,7 @@ def create_saving_detail(account_id, principal_amount, interest_rate, term_month
     if start_date is None:
         start_date = datetime.now()
     if maturity_date is None:
-        maturity_date = start_date + timedelta(days=30*term_months)  # tạm tính mỗi tháng 30 ngày
+        maturity_date = start_date + timedelta(days=30*term_months)
     result = SavingDetailModel.create(
         account_id, principal_amount, interest_rate, term_months, start_date, maturity_date
     )
@@ -103,7 +113,6 @@ def update_saving_interest(account_id, new_rate):
         return {"status":"error", "message":"Saving detail not found"}
     
     SavingDetailModel.update_interest(saving["SAVING_ACC_ID"], new_rate)
-    # Optional: update luôn trong ACCOUNT
     AccountModel.update(account_id, INTEREST_RATE=new_rate)
     return {"status":"success", "SAVING_ACC_ID": saving["SAVING_ACC_ID"], "new_rate": new_rate}
 
@@ -116,16 +125,13 @@ def close_saving(account_id):
     rate = saving["INTEREST_RATE"]
     term = saving["TERM_MONTHS"]
 
-    # tính lãi đơn giản
     interest = principal * (rate/100) * (term/12)
     total_amount = principal + interest
 
-    # cập nhật balance account
     acc = AccountModel.get_by_id(account_id)
     new_balance = acc["BALANCE"] + total_amount
     AccountModel.update(account_id, BALANCE=new_balance)
 
-    # đóng saving
     SavingDetailModel.close_saving(saving["SAVING_ACC_ID"])
 
     return {"status":"success", "total_paid": total_amount, "principal": principal, "interest": interest}
@@ -171,6 +177,10 @@ def get_mortage_detail(account_id):
     return {"status": "success", "data": data}
 
 def pay_mortgage(account_id, amount):
+    # --- FIX QUAN TRỌNG: Import ở đây để tránh lỗi circular dependency ---
+    from services.transaction_service import create_transaction
+    # ---------------------------------------------------------------------
+
     mortgage = MortageDetailModel.get_by_account(account_id)
     if not mortgage:
         return {"status":"error","message":"Mortgage detail not found"}
@@ -182,8 +192,7 @@ def pay_mortgage(account_id, amount):
     new_remaining = remaining - amount
     MortageDetailModel.update_remaining(mortgage["MORTAGE_ACC_ID"], new_remaining)
 
-    # Tạo transaction theo chuẩn transaction_model
-    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID")
+    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID") # Lưu ý tên bảng là TRANSACTION hay TRANSACTIONS?
     acc = AccountModel.get_by_id(account_id)
 
     tx_data = {
@@ -197,7 +206,7 @@ def pay_mortgage(account_id, amount):
         "type": "MORTGAGE_PAYMENT"
     }
 
-    create_transaction(tx_data)
+    create_transaction(tx_data) # Giờ đã gọi được hàm này
 
     return {"status":"success", "mortgage_acc_id": mortgage["MORTAGE_ACC_ID"], "remaining_balance": new_remaining, "transaction_id": tx_id}
 

@@ -102,6 +102,18 @@ CREATE TABLE MORTAGE_DETAIL (
     PRIMARY KEY (MORTAGE_ACC_ID)
 );
 
+/*================== Table: SAVING_DETAIL ======================*/
+CREATE TABLE MORTAGE_DETAIL (
+    SAVING_ACC_ID varchar(10) NOT NULL,
+    ACCOUNT_ID varchar(10),
+    PRINCIPAL_AMOUNT float,
+    INTEREST_RATE float,
+    TERM_MONTHS dint,
+    START_DATE datetime,
+    MATURITY_DATE datetime,
+    PRIMARY KEY (SAVING_ACC_ID)
+);
+
 /*================== Table: TRANSACTION =========================*/
 CREATE TABLE TRANSACTION (
     TRANSACTION_ID varchar(10) NOT NULL,

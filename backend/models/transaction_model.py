@@ -5,14 +5,14 @@ from datetime import datetime
 
 
 class TransactionModel:
-    TABLE_NAME = "TRANSACTION"
+    TABLE_NAME = "TRANSACTIONS"
 
     @staticmethod
     def generate_transaction_id():
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                cur.execute("SELECT TRANSACTION_ID FROM `TRANSACTION` ORDER BY TRANSACTION_ID DESC LIMIT 1")
+                cur.execute("SELECT TRANSACTION_ID FROM `TRANSACTIONS` ORDER BY TRANSACTION_ID DESC LIMIT 1")
                 last = cur.fetchone()
                 if last and last["TRANSACTION_ID"]:
                     num = int(last["TRANSACTION_ID"][1:]) + 1
@@ -77,7 +77,7 @@ class TransactionModel:
             conn.close()
 
     @staticmethod
-    def list_all(account_id=None):
+    def get_by_account(account_id=None):
         conn = get_conn()
         try:
             with conn.cursor() as cur:
