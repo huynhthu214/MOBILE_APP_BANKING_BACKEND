@@ -47,17 +47,26 @@ def haversine_distance(lat1, lng1, lat2, lng2):
 # ============================
 # Tìm chi nhánh gần nhất
 # ============================
-def find_nearby_branches(lat, lng, radius_m):
+def find_nearby_branches(user_lat, user_lng, radius_m):
     branches = get_all_locations()
     result = []
 
+    user_lat = float(user_lat)
+    user_lng = float(user_lng)
+
     for b in branches:
-        if not b["LAT"] or not b["LNG"]:
+        if b["LAT"] is None or b["LNG"] is None:
+            continue
+
+        b_lat = float(b["LAT"])
+        b_lng = float(b["LNG"])
+
+        if b_lat == 0 or b_lng == 0:
             continue
 
         distance = haversine_distance(
-            lat, lng,
-            float(b["LAT"]), float(b["LNG"])
+            user_lat, user_lng,
+            b_lat, b_lng
         )
 
         if distance <= radius_m:
@@ -66,7 +75,6 @@ def find_nearby_branches(lat, lng, radius_m):
 
     result.sort(key=lambda x: x["DISTANCE_M"])
     return result
-
 
 # ============================
 # Tính route đơn giản

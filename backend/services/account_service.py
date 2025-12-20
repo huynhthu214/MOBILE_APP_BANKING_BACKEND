@@ -46,10 +46,12 @@ def get_account_summary(account_id):
         return {"status": "error", "message": "Account not found"}
 
     acc_type = acc["ACCOUNT_TYPE"].lower()
+    
+    # Get Account Number if available
+    acc_num = acc.get("ACCOUNT_NUMBER")
 
     # CHECKING
     if acc_type == "checking":
-        # Hàm này gọi get_transactions đã định nghĩa ở trên -> OK
         txs = get_transactions(account_id)
         last_10 = txs[:10] if len(txs) >= 10 else txs
 
@@ -57,6 +59,7 @@ def get_account_summary(account_id):
             "status": "success",
             "type": "checking",
             "balance": acc["BALANCE"],
+            "account_number": acc_num,
             "last_transactions": last_10
         }
 
@@ -72,11 +75,14 @@ def get_account_summary(account_id):
             "status": "success",
             "type": "saving",
             "balance": acc["BALANCE"],
+            "account_number": acc_num,
             "interest_rate": saving["INTEREST_RATE"],
-            "monthly_interest": monthly_interest
+            "monthly_interest": monthly_interest,
+            "principal": saving["PRINCIPAL_AMOUNT"],
+            "maturity_date": saving["MATURITY_DATE"]
         }
 
-    # MORTGAGE
+# MORTGAGE
     if acc_type == "mortgage":
         mort = MortageDetailModel.get_by_account(account_id)
         if not mort:
@@ -85,11 +91,18 @@ def get_account_summary(account_id):
         return {
             "status": "success",
             "type": "mortgage",
+            "account_number": acc_num,
             "remaining_balance": mort["REMAINING_BALANCE"],
-            "next_payment_date": mort["NEXT_PAYMENT_DATE"]
-        }
+            "next_payment_date": mort["NEXT_PAYMENT_DATE"],
+            "payment_amount": mort["PAYMENT_AMOUNT"],
+            
+            # --- SỬA LỖI 1: Đổi 'saving' thành 'mort' ---
+            "loan_end_date": mort["LOAN_END_DATE"], 
 
-    return {"status": "error", "message": "Unsupported account type"}
+            # --- SỬA LỖI 2: Thêm 2 dòng này để hiển thị Tần suất và Tổng vay ---
+            "payment_frequency": mort["PAYMEN_FREQUENCY"], 
+            "total_loan_amount": mort["TOTAL_LOAN_AMOUNT"]
+        }
 
 
 # ===== SAVING DETAIL =====

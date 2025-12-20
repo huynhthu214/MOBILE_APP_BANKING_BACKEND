@@ -105,6 +105,21 @@ create table MORTAGE_DETAIL
 );
 
 /*==============================================================*/
+/* Table: NOTIFICATION                                          */
+/*==============================================================*/
+create table NOTIFICATION
+(
+   NOTI_ID              varchar(10) not null  comment '',
+   USER_ID              varchar(10)  comment '',
+   TITLE                text  comment '',
+   BODY                 text  comment '',
+   TYPE                 text  comment '',
+   IS_READ              bool  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (NOTI_ID)
+);
+
+/*==============================================================*/
 /* Table: OTP                                                   */
 /*==============================================================*/
 create table OTP
@@ -200,4 +215,3 @@ create table UTILITY_PAYMENT
    CREATED_AT           datetime  comment '',
    primary key (UTILITY_PAYMENT_ID)
 );
-

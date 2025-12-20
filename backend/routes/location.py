@@ -16,22 +16,18 @@ bp = Blueprint("location", __name__, url_prefix="/api/v1/branches")
 # GET NEARBY
 # ============================
 @bp.route("/nearby", methods=["GET"])
-def nearby():
+def nearby_branches():
     try:
         lat = float(request.args.get("lat"))
         lng = float(request.args.get("lng"))
         radius_m = float(request.args.get("radius_m"))
-    except:
-        return jsonify({"message": "lat, lng, radius_m phải là số"}), 400
+    except (TypeError, ValueError):
+        return jsonify({
+            "message": "lat, lng, radius_m phải là số"
+        }), 400
 
     result = find_nearby_branches(lat, lng, radius_m)
-
-    return jsonify({
-        "message": "success",
-        "count": len(result),
-        "data": result
-    })
-
+    return jsonify(result)
 
 # ============================
 # GET ROUTE

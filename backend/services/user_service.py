@@ -99,12 +99,13 @@ def update_user_info(user_id, data):
             "message":"User not found",
             "status_code":404
         }
-
+    new_email = data.get("email") or data.get("EMAIL") or user["EMAIL"]
     update_user_db(user_id, {
         "FULL_NAME": data.get("FULL_NAME", user["FULL_NAME"]),
         "PHONE": data.get("PHONE", user["PHONE"]),
         "ROLE": data.get("ROLE", user["ROLE"]),
-        "IS_ACTIVE": data.get("IS_ACTIVE", user["IS_ACTIVE"])
+        "IS_ACTIVE": data.get("IS_ACTIVE", user["IS_ACTIVE"]),
+        "EMAIL": new_email
     })
 
     return {"status":"success","message":"User updated"}
