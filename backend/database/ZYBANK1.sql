@@ -61,6 +61,10 @@ create table EKYC
    primary key (EKYC_ID)
 );
 
+ALTER TABLE EKYC MODIFY IMG_FRONT_URL LONGTEXT;
+ALTER TABLE EKYC MODIFY IMG_BACK_URL LONGTEXT;
+ALTER TABLE EKYC MODIFY SELFIE_URL LONGTEXT;
+
 /*==============================================================*/
 /* Table: EXTERNAL_ACCOUNT                                      */
 /*==============================================================*/
