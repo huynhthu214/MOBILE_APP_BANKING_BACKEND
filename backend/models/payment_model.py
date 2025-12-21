@@ -63,7 +63,7 @@ def create_transaction(transaction_id, account_id, amount, currency="VND", tx_ty
         with conn.cursor() as cur:
             created_at = datetime.now()
             cur.execute("""
-                INSERT INTO TRANSACTION (TRANSACTION_ID, ACCOUNT_ID, AMOUNT, CURRENCY, STATUS, CREATED_AT, TYPE)
+                INSERT INTO TRANSACTIONS (TRANSACTION_ID, ACCOUNT_ID, AMOUNT, CURRENCY, STATUS, CREATED_AT, TYPE)
                 VALUES (%s, %s, %s, %s, 'SUCCESS', %s, %s)
             """, (transaction_id, account_id, amount, currency, created_at, tx_type))
             conn.commit()

@@ -56,7 +56,7 @@ class UtilityPaymentModel:
                 cur.execute("""
                     SELECT up.*, t.AMOUNT, t.STATUS AS TRANSACTION_STATUS
                     FROM UTILITY_PAYMENT up
-                    JOIN `TRANSACTION` t
+                    JOIN `TRANSACTIONS` t
                       ON t.TRANSACTION_ID = up.TRANSACTION_ID
                     WHERE up.UTILITY_PAYMENT_ID=%s
                 """, (payment_id,))
@@ -72,7 +72,7 @@ class UtilityPaymentModel:
                 cur.execute("""
                     SELECT up.*, t.AMOUNT
                     FROM UTILITY_PAYMENT up
-                    JOIN `TRANSACTION` t
+                    JOIN `TRANSACTIONS` t
                       ON t.TRANSACTION_ID = up.TRANSACTION_ID
                     ORDER BY up.CREATED_AT DESC
                 """)

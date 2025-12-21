@@ -8,11 +8,7 @@ def now():
     return datetime.now()
 
 def generate_sequential_id(prefix, table_name, id_col, width=6, conn=None):
-    """
-    Generate sequential id like T000001 by reading latest id in table.
-    If 'conn' is provided, we perform SELECT ... FOR UPDATE inside that transaction
-    to avoid race conditions (recommended for TRANSACTION ids).
-    """
+
     close_conn = False
     if conn is None:
         conn = get_conn()
@@ -95,20 +91,20 @@ def insert_transaction(conn, tx):
     placeholders = ", ".join(["%s"] * len(tx))
     vals = list(tx.values())
     with conn.cursor() as cur:
-        cur.execute(f"INSERT INTO TRANSACTION ({cols}) VALUES ({placeholders})", vals)
+        cur.execute(f"INSERT INTO TRANSACTIONS ({cols}) VALUES ({placeholders})", vals)
 
 def get_transaction_by_id_conn(conn, transaction_id):
     with conn.cursor() as cur:
-        cur.execute("SELECT * FROM TRANSACTION WHERE TRANSACTION_ID = %s", (transaction_id,))
+        cur.execute("SELECT * FROM TRANSACTIONS WHERE TRANSACTION_ID = %s", (transaction_id,))
         return cur.fetchone()
 
 def update_transaction_status_conn(conn, transaction_id, status, complete_at=None):
     with conn.cursor() as cur:
         if complete_at:
-            cur.execute("UPDATE TRANSACTION SET STATUS = %s, COMPLETE_AT = %s WHERE TRANSACTION_ID = %s",
+            cur.execute("UPDATE TRANSACTIONS SET STATUS = %s, COMPLETE_AT = %s WHERE TRANSACTION_ID = %s",
                         (status, complete_at, transaction_id))
         else:
-            cur.execute("UPDATE TRANSACTION SET STATUS = %s WHERE TRANSACTION_ID = %s",
+            cur.execute("UPDATE TRANSACTIONS SET STATUS = %s WHERE TRANSACTION_ID = %s",
                         (status, transaction_id))
 
 # OTP helpers
@@ -149,7 +145,7 @@ def list_transactions_service(keyword="", page=1, size=50):
             if keyword:
                 kw = f"%{keyword}%"
                 cur.execute(
-                    """SELECT * FROM TRANSACTION
+                    """SELECT * FROM TRANSACTIONS
                        WHERE TRANSACTION_ID LIKE %s
                           OR ACCOUNT_ID LIKE %s
                           OR DEST_ACC_NUM LIKE %s
@@ -160,7 +156,7 @@ def list_transactions_service(keyword="", page=1, size=50):
                 )
             else:
                 cur.execute(
-                    "SELECT * FROM TRANSACTION ORDER BY CREATED_AT DESC LIMIT %s OFFSET %s",
+                    "SELECT * FROM TRANSACTIONS ORDER BY CREATED_AT DESC LIMIT %s OFFSET %s",
                     (size, offset)
                 )
             rows = cur.fetchall()
@@ -185,7 +181,7 @@ def get_account_transactions_service(account_id, from_dt=None, to_dt=None, page=
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            query = "SELECT * FROM TRANSACTION WHERE ACCOUNT_ID = %s"
+            query = "SELECT * FROM TRANSACTIONS WHERE ACCOUNT_ID = %s"
             params = [account_id]
             if from_dt:
                 query += " AND CREATED_AT >= %s"
@@ -218,7 +214,7 @@ def deposit_create_service(account_id, amount, currency="VND"):
             return {"status": "error", "message": "Account not found"}
 
         # generate tx id inside this transaction and lock
-        tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID", conn=conn)
+        tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
 
         tx = {
             "TRANSACTION_ID": tx_id,
@@ -320,7 +316,7 @@ def withdraw_create_service(account_id, amount, currency="VND"):
 
         # TODO: EKYC + daily limit checks here
 
-        tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID", conn=conn)
+        tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
         tx = {
             "TRANSACTION_ID": tx_id,
             "PAYMENT_ID": None,
@@ -442,7 +438,7 @@ def transfer_create_service(from_account_id, to_account_number, amount, to_bank_
                 u = cur.fetchone()
                 dest_name = u["FULL_NAME"] if u else None
 
-        tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID", conn=conn)
+        tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
         tx = {
             "TRANSACTION_ID": tx_id,
             "PAYMENT_ID": None,
@@ -596,12 +592,12 @@ def list_transactions_service(account_id=None):
         with conn.cursor() as cur:
             if account_id:
                 cur.execute(
-                    "SELECT * FROM TRANSACTION WHERE ACCOUNT_ID=%s ORDER BY CREATED_AT DESC",
+                    "SELECT * FROM TRANSACTIONS WHERE ACCOUNT_ID=%s ORDER BY CREATED_AT DESC",
                     (account_id,)
                 )
             else:
                 cur.execute(
-                    "SELECT * FROM TRANSACTION ORDER BY CREATED_AT DESC"
+                    "SELECT * FROM TRANSACTIONS ORDER BY CREATED_AT DESC"
                 )
             rows = cur.fetchall()
         return {"status": "success", "data": rows}
