@@ -192,7 +192,7 @@ def pay_mortgage(account_id, amount):
     new_remaining = remaining - amount
     MortageDetailModel.update_remaining(mortgage["MORTAGE_ACC_ID"], new_remaining)
 
-    tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID") # Lưu ý tên bảng là TRANSACTION hay TRANSACTIONS?
+    tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID") # Lưu ý tên bảng là TRANSACTION hay TRANSACTIONS?
     acc = AccountModel.get_by_id(account_id)
 
     tx_data = {

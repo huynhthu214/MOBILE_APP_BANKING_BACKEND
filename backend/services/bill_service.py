@@ -127,7 +127,7 @@ def bill_pay_confirm_service(transaction_id, otp_code):
         conn.begin()
 
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM TRANSACTION WHERE TRANSACTION_ID=%s FOR UPDATE", (transaction_id,))
+            cur.execute("SELECT * FROM TRANSACTIONS WHERE TRANSACTION_ID=%s FOR UPDATE", (transaction_id,))
             tx = cur.fetchone()
 
         if not tx or tx["STATUS"] != "PENDING":

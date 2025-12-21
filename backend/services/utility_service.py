@@ -50,7 +50,7 @@ def utility_topup_create_service(account_id, provider, phone_number, amount):
             return {"status": "error", "message": "Insufficient balance"}
 
         # create transaction
-        tx_id = generate_sequential_id("T", "TRANSACTION", "TRANSACTION_ID", conn=conn)
+        tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
 
         tx = {
             "TRANSACTION_ID": tx_id,
@@ -137,7 +137,7 @@ def utility_topup_confirm_service(transaction_id, otp_code):
 
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM TRANSACTION WHERE TRANSACTION_ID=%s FOR UPDATE",
+                "SELECT * FROM TRANSACTIONS WHERE TRANSACTION_ID=%s FOR UPDATE",
                 (transaction_id,)
             )
             tx = cur.fetchone()
