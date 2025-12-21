@@ -4,12 +4,23 @@ from services.user_service import (
     get_user_detail,
     update_user_info,
     list_users, 
-    search_users
+    search_users,
+    create_customer_service,
 )
 from services.user_service import get_me
 from services.security_utils import decode_access_token
 
 bp = Blueprint("users", __name__, url_prefix="/api/v1/users")
+admin_bp = Blueprint("admin_create_user", __name__, url_prefix="/api/v1/admin/users")
+@admin_bp.route("/create", methods=["POST"])
+def create_customer_route():
+    data = request.get_json()
+    
+    # Đảm bảo gọi đúng tên hàm đã sửa ở trên
+    result = create_customer_service(data) 
+    
+    status_code = result.get("status_code", 200)
+    return jsonify(result), status_code
 
 @bp.route("", methods=["POST"])
 def create_user_route():

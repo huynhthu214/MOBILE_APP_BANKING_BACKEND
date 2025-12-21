@@ -1,6 +1,7 @@
 from flask import Flask
+
 from routes.auth import bp as auth_bp
-from routes.users import bp as users_bp
+from routes.users import bp as users_bp, admin_bp
 from routes.payments import bp as payments_bp
 from routes.transactions import bp as transactions_bp
 from routes.bills import bp as bills_bp
@@ -33,6 +34,7 @@ app.register_blueprint(system_bp)
 app.register_blueprint(biometric_bp)
 app.register_blueprint(bp_admin)
 app.register_blueprint(bp_noti)
+app.register_blueprint(admin_bp)
 app.register_blueprint(admin_dashboard_bp, url_prefix='/api/v1')
 
 if __name__ == "__main__":
