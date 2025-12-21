@@ -2,7 +2,9 @@ from models.account_model import AccountModel, SavingDetailModel, MortageDetailM
 from models.transaction_model import TransactionModel
 from services.transaction_service import generate_sequential_id
 from datetime import datetime, timedelta
-
+from db import get_conn
+import json
+import os
 # ===== ACCOUNT =====
 def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status="active", account_number=None):
     account_id = AccountModel.create(
@@ -46,10 +48,12 @@ def get_account_summary(account_id):
         return {"status": "error", "message": "Account not found"}
 
     acc_type = acc["ACCOUNT_TYPE"].lower()
+    
+    # Get Account Number if available
+    acc_num = acc.get("ACCOUNT_NUMBER")
 
     # CHECKING
     if acc_type == "checking":
-        # Hàm này gọi get_transactions đã định nghĩa ở trên -> OK
         txs = get_transactions(account_id)
         last_10 = txs[:10] if len(txs) >= 10 else txs
 
@@ -57,6 +61,7 @@ def get_account_summary(account_id):
             "status": "success",
             "type": "checking",
             "balance": acc["BALANCE"],
+            "account_number": acc_num,
             "last_transactions": last_10
         }
 
@@ -72,11 +77,14 @@ def get_account_summary(account_id):
             "status": "success",
             "type": "saving",
             "balance": acc["BALANCE"],
+            "account_number": acc_num,
             "interest_rate": saving["INTEREST_RATE"],
-            "monthly_interest": monthly_interest
+            "monthly_interest": monthly_interest,
+            "principal": saving["PRINCIPAL_AMOUNT"],
+            "maturity_date": saving["MATURITY_DATE"]
         }
 
-    # MORTGAGE
+# MORTGAGE
     if acc_type == "mortgage":
         mort = MortageDetailModel.get_by_account(account_id)
         if not mort:
@@ -85,11 +93,15 @@ def get_account_summary(account_id):
         return {
             "status": "success",
             "type": "mortgage",
+            "account_number": acc.get("ACCOUNT_NUMBER"),
             "remaining_balance": mort["REMAINING_BALANCE"],
-            "next_payment_date": mort["NEXT_PAYMENT_DATE"]
+            "next_payment_date": mort["NEXT_PAYMENT_DATE"],
+            "payment_amount": mort["PAYMENT_AMOUNT"],
+            "loan_end_date": mort["LOAN_END_DATE"], 
+            "payment_frequency": mort["PAYMEN_FREQUENCY"], 
+            "total_loan_amount": mort["TOTAL_LOAN_AMOUNT"],
+            "interest_rate": acc["INTEREST_RATE"]
         }
-
-    return {"status": "error", "message": "Unsupported account type"}
 
 
 # ===== SAVING DETAIL =====
@@ -254,3 +266,86 @@ def get_mortgage_schedule(account_id):
         "account_id": account_id,
         "schedule": schedule
     }
+
+def update_global_rates(new_rates):
+    # 1. Lưu vào file JSON (để hiển thị lên UI Admin)
+    current = get_rates_from_file()
+    current.update(new_rates)
+    save_rates_to_file(current)
+
+    # 2. Cập nhật Mortgage (Vay thế chấp)
+    if 'rate_mortgage' in new_rates:
+        try:
+            # Cập nhật bảng ACCOUNT cho loại mortgage
+            update_mortgage_accounts_bulk(float(new_rates['rate_mortgage']))
+        except ValueError: pass
+
+    # 3. Cập nhật Savings (Tiết kiệm) theo từng kỳ hạn
+    # Kiểm tra từng loại kỳ hạn gửi lên và update vào SQL
+    if 'rate_1m' in new_rates:
+        try:
+            update_savings_bulk(1, float(new_rates['rate_1m'])) # 1 tháng
+        except ValueError: pass
+
+    if 'rate_6m' in new_rates:
+        try:
+            update_savings_bulk(6, float(new_rates['rate_6m'])) # 6 tháng
+        except ValueError: pass
+
+    if 'rate_12m' in new_rates:
+        try:
+            update_savings_bulk(12, float(new_rates['rate_12m'])) # 12 tháng
+        except ValueError: pass
+
+    return {"status": "success", "message": "Đã cập nhật lãi suất thành công"}
+
+RATES_FILE = "rates.json"  # Tên file lưu cấu hình lãi suất
+
+def get_rates_from_file():
+    if not os.path.exists(RATES_FILE):
+        # Tạo file mặc định nếu chưa tồn tại
+        default_rates = {"rate_12m": 5.5, "rate_mortgage": 7.5}
+        save_rates_to_file(default_rates)
+        return default_rates
+    
+    try:
+        with open(RATES_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return {"rate_12m": 5.5, "rate_mortgage": 7.5}
+
+def save_rates_to_file(rates):
+    try:
+        with open(RATES_FILE, 'w') as f:
+            json.dump(rates, f, indent=4)
+    except Exception as e:
+        print(f"Error saving rates: {e}")
+
+def update_mortgage_accounts_bulk(new_rate):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Chỉ update những tài khoản là mortgage
+            sql = "UPDATE ACCOUNT SET INTEREST_RATE = %s WHERE ACCOUNT_TYPE = 'mortgage'"
+            cur.execute(sql, (new_rate,))
+            conn.commit()
+            print(f"Updated mortgage rate to {new_rate}% for all mortgage accounts.")
+    except Exception as e:
+        print(f"Error bulk updating mortgage: {e}")
+    finally:
+        conn.close()
+    
+def update_savings_bulk(term_months, new_rate):
+    """Cập nhật lãi suất cho các sổ tiết kiệm có kỳ hạn cụ thể"""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Chỉ update những dòng có TERM_MONTHS khớp với input
+            sql = "UPDATE SAVING_DETAIL SET INTEREST_RATE = %s WHERE TERM_MONTHS = %s"
+            cur.execute(sql, (new_rate, term_months))
+            conn.commit()
+            print(f"Updated savings with term {term_months} months to {new_rate}%")
+    except Exception as e:
+        print(f"Error updating savings term {term_months}: {e}")
+    finally:
+        conn.close()

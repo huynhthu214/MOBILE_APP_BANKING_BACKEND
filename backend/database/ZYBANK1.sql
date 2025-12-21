@@ -61,6 +61,10 @@ create table EKYC
    primary key (EKYC_ID)
 );
 
+ALTER TABLE EKYC MODIFY IMG_FRONT_URL LONGTEXT;
+ALTER TABLE EKYC MODIFY IMG_BACK_URL LONGTEXT;
+ALTER TABLE EKYC MODIFY SELFIE_URL LONGTEXT;
+
 /*==============================================================*/
 /* Table: EXTERNAL_ACCOUNT                                      */
 /*==============================================================*/
@@ -102,6 +106,21 @@ create table MORTAGE_DETAIL
    NEXT_PAYMENT_DATE    datetime  comment '',
    LOAN_END_DATE        datetime  comment '',
    primary key (MORTAGE_ACC_ID)
+);
+
+/*==============================================================*/
+/* Table: NOTIFICATION                                          */
+/*==============================================================*/
+create table NOTIFICATION
+(
+   NOTI_ID              varchar(10) not null  comment '',
+   USER_ID              varchar(10)  comment '',
+   TITLE                text  comment '',
+   BODY                 text  comment '',
+   TYPE                 text  comment '',
+   IS_READ              bool  comment '',
+   CREATED_AT           datetime  comment '',
+   primary key (NOTI_ID)
 );
 
 /*==============================================================*/
@@ -200,4 +219,3 @@ create table UTILITY_PAYMENT
    CREATED_AT           datetime  comment '',
    primary key (UTILITY_PAYMENT_ID)
 );
-

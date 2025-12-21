@@ -1,5 +1,7 @@
 from datetime import datetime
 import math
+from geopy.geocoders import Nominatim
+from geopy.exc import GeopyError
 from db import get_conn
 from models.location_model import (
     get_all_locations,
@@ -8,9 +10,21 @@ from models.location_model import (
     update_location,
     delete_location
 )
-
+geolocator = Nominatim(user_agent="zy_banking_app")
+def geocode_address(address):
+    """Chuyển đổi địa chỉ thành tọa độ LAT, LNG"""
+    try:
+        # Bạn có thể thêm ", Vietnam" vào sau địa chỉ để tìm kiếm chính xác hơn
+        location = geolocator.geocode(address + ", Vietnam", timeout=10)
+        if location:
+            return location.latitude, location.longitude
+        return None, None
+    except (GeopyError, Exception) as e:
+        print(f"Geocoding error: {e}")
+        return None, None
+    
 # ============================
-# Sinh BRANCH_ID dạng LOC01
+# Sinh BRANCH_ID dạng L01
 # ============================
 def generate_branch_id():
     conn = get_conn()
@@ -20,10 +34,10 @@ def generate_branch_id():
             last = cur.fetchone()
 
             if not last:
-                return "LOC01"
+                return "L001"
 
-            last_num = int(last["BRANCH_ID"].replace("LOC", ""))
-            return f"LOC{last_num + 1:02d}"
+            last_num = int(last["BRANCH_ID"].replace("L0", ""))
+            return f"L0{last_num + 1:02d}"
     finally:
         conn.close()
 
@@ -47,17 +61,26 @@ def haversine_distance(lat1, lng1, lat2, lng2):
 # ============================
 # Tìm chi nhánh gần nhất
 # ============================
-def find_nearby_branches(lat, lng, radius_m):
+def find_nearby_branches(user_lat, user_lng, radius_m):
     branches = get_all_locations()
     result = []
 
+    user_lat = float(user_lat)
+    user_lng = float(user_lng)
+
     for b in branches:
-        if not b["LAT"] or not b["LNG"]:
+        if b["LAT"] is None or b["LNG"] is None:
+            continue
+
+        b_lat = float(b["LAT"])
+        b_lng = float(b["LNG"])
+
+        if b_lat == 0 or b_lng == 0:
             continue
 
         distance = haversine_distance(
-            lat, lng,
-            float(b["LAT"]), float(b["LNG"])
+            user_lat, user_lng,
+            b_lat, b_lng
         )
 
         if distance <= radius_m:
@@ -66,7 +89,6 @@ def find_nearby_branches(lat, lng, radius_m):
 
     result.sort(key=lambda x: x["DISTANCE_M"])
     return result
-
 
 # ============================
 # Tính route đơn giản
@@ -103,20 +125,32 @@ def calculate_simple_route(branch_id, from_lat, from_lng):
 # ============================
 def create_branch(data):
     branch_id = generate_branch_id()
+    
+    address = data.get("ADDRESS")
+    lat = data.get("LAT")
+    lng = data.get("LNG")
+
+    # Nếu người dùng không gửi tọa độ, tự động đi tìm dựa trên địa chỉ
+    if (not lat or not lng) and address:
+        lat, lng = geocode_address(address)
 
     values = (
         branch_id,
         data.get("NAME"),
-        data.get("ADDRESS"),
-        data.get("LAT"),
-        data.get("LNG"),
+        address,
+        lat,
+        lng,
         data.get("OPEN_HOURS"),
         datetime.now()
     )
 
     try:
         insert_location(values)
-        return {"message": "created", "BRANCH_ID": branch_id}
+        return {
+            "message": "created", 
+            "BRANCH_ID": branch_id, 
+            "auto_coords": {"lat": lat, "lng": lng}
+        }
     except Exception as e:
         return {"message": "error", "error": str(e)}
 

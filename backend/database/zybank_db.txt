@@ -110,3 +110,14 @@ VALUES
 ('EX001', 'VCB', '123456789', 'Nguyen Van A'),
 ('EX002', 'BIDV', '987654321', 'Tran Thi B'),
 ('EX003', 'ACB', '112233445', 'Le Van C');
+/*================== NOTIFICATION ===================*/
+INSERT INTO NOTIFICATION (NOTI_ID, USER_ID, TITLE, BODY, TYPE, IS_READ, CREATED_AT) VALUES
+('N001', 'U001', 'Biến động số dư', 'Tài khoản 1900xxxx8888 được cộng +15,000,000 VND lúc 08:30 15/12/2023. Nội dung: TRA LUONG THANG 12.', 'TRANSACTION', 0, '2023-12-15 08:30:00'),
+
+('N002', 'U0101', 'Nhắc thanh toán hóa đơn', 'Hóa đơn Tiền Điện kỳ tháng 12/2023 của bạn là 850,000 VND. Hạn thanh toán: 20/12/2023.', 'BILL', 0, '2023-12-18 09:00:00'),
+
+('N003', 'U001', 'Cảnh báo đăng nhập', 'Phát hiện đăng nhập mới trên thiết bị iPhone 14 Pro Max tại TP.HCM. Nếu không phải bạn, vui lòng đổi mật khẩu ngay.', 'SECURITY', 1, '2023-12-19 14:15:22'),
+
+('N004', 'U002', 'Bảo trì hệ thống', 'Hệ thống ZY Banking sẽ bảo trì định kỳ từ 00:00 đến 04:00 ngày 25/12/2023. Các dịch vụ chuyển tiền sẽ bị gián đoạn.', 'SYSTEM', 1, '2023-12-20 10:00:00'),
+
+('N005', 'U001', 'Ưu đãi lãi suất', 'Gửi tiết kiệm Online ngay hôm nay để nhận lãi suất đặc biệt lên tới 7.5%/năm. Áp dụng đến hết 31/12.', 'PROMOTION', 0, '2023-12-21 11:45:00');

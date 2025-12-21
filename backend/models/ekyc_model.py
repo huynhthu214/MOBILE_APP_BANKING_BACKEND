@@ -32,7 +32,7 @@ def insert_ekyc(data):
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO EKYC
-                (EKYC_ID, USER_ID, ID_IMG_FRONT_URL, ID_IMG_BACK_URL,
+                (EKYC_ID, USER_ID, IMG_FRONT_URL, IMG_BACK_URL,
                  SELFIE_URL, STATUS, REVIEWED_AT, REVIEWED_BY, CREATED_AT)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, data)
@@ -72,7 +72,16 @@ def get_pending_ekyc():
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM EKYC WHERE STATUS = 'pending'")
+            cur.execute("""SELECT 
+                    E.EKYC_ID, 
+                    E.USER_ID,  
+                    E.STATUS, 
+                    E.CREATED_AT,
+                    U.FULL_NAME,  
+                    U.EMAIL     
+                FROM EKYC E
+                JOIN USER U ON E.USER_ID = U.USER_ID
+                WHERE E.STATUS = 'pending'""")
             return cur.fetchall()
     finally:
         conn.close()
@@ -84,8 +93,8 @@ def update_ekyc_images(user_id, front, back, selfie):
             cur.execute("""
                 UPDATE EKYC
                 SET 
-                    ID_IMG_FRONT_URL=%s,
-                    ID_IMG_BACK_URL=%s,
+                    IMG_FRONT_URL=%s,
+                    IMG_BACK_URL=%s,
                     SELFIE_URL=%s,
                     STATUS='pending',
                     REVIEWED_AT=NULL,

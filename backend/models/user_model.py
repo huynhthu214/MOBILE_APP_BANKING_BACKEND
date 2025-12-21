@@ -48,13 +48,14 @@ def update_user(user_id, data):
         with conn.cursor() as cur:
             cur.execute("""
                 UPDATE USER 
-                SET FULL_NAME=%s, PHONE=%s, ROLE=%s, IS_ACTIVE=%s
+                SET FULL_NAME=%s, PHONE=%s, ROLE=%s, IS_ACTIVE=%s, EMAIL=%s
                 WHERE USER_ID=%s
             """, (
                 data["FULL_NAME"],
                 data.get("PHONE"),
                 data.get("ROLE"),
                 data.get("IS_ACTIVE", 1),
+                data["EMAIL"],
                 user_id
             ))
             conn.commit()
