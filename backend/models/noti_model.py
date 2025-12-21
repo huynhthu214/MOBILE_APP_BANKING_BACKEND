@@ -34,3 +34,18 @@ def mark_all_as_read_model(user_id):
         return False
     finally:
         conn.close()
+
+def mark_single_as_read_model(noti_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Cập nhật IS_READ cho đúng ID thông báo được bấm
+            sql = "UPDATE NOTIFICATION SET IS_READ = 1 WHERE NOTI_ID = %s"
+            cur.execute(sql, (noti_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+    finally:
+        conn.close()

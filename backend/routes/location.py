@@ -6,11 +6,22 @@ from services.location_service import (
     update_branch,
     delete_branch,
     find_nearby_branches,
-    calculate_simple_route
+    calculate_simple_route,
+    geocode_address
 )
 
 bp = Blueprint("location", __name__, url_prefix="/api/v1/branches")
 
+@bp.route("/geocode", methods=["GET"])
+def get_coords_from_address():
+    address = request.args.get("address")
+    if not address:
+        return jsonify({"message": "Vui lòng nhập địa chỉ"}), 400
+    
+    lat, lng = geocode_address(address)
+    if lat and lng:
+        return jsonify({"address": address, "lat": lat, "lng": lng}), 200
+    return jsonify({"message": "Không tìm thấy tọa độ cho địa chỉ này"}), 404
 
 # ============================
 # GET NEARBY
