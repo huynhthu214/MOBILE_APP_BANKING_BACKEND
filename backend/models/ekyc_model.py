@@ -20,7 +20,16 @@ def get_ekyc_by_user(user_id):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM EKYC WHERE USER_ID=%s", (user_id,))
+            cur.execute("""
+                SELECT 
+                    EKYC_ID, 
+                    USER_ID, 
+                    STATUS, 
+                    REVIEWED_AT, 
+                    REVIEWED_BY, 
+                    CREATED_AT 
+                FROM EKYC 
+                WHERE USER_ID=%s""", (user_id,))
             return cur.fetchone()
     finally:
         conn.close()

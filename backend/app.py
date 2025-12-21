@@ -14,6 +14,7 @@ from routes.system import bp as system_bp
 from routes.biometric import bp as biometric_bp
 from routes.admin import bp_admin
 from routes.noti import bp as bp_noti
+from routes.admin_dashboard import admin_dashboard_bp
 
 app = Flask(__name__)
 
@@ -32,6 +33,7 @@ app.register_blueprint(system_bp)
 app.register_blueprint(biometric_bp)
 app.register_blueprint(bp_admin)
 app.register_blueprint(bp_noti)
+app.register_blueprint(admin_dashboard_bp, url_prefix='/api/v1')
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
