@@ -1,8 +1,6 @@
-
 # models/transaction_model.py
 from db import get_conn
 from datetime import datetime
-
 
 class TransactionModel:
     TABLE_NAME = "TRANSACTIONS"
@@ -12,12 +10,33 @@ class TransactionModel:
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                cur.execute("SELECT TRANSACTION_ID FROM `TRANSACTIONS` ORDER BY TRANSACTION_ID DESC LIMIT 1")
+                # 'T' có 1 ký tự, nên cắt từ ký tự thứ 2 (SUBSTRING(TRANSACTION_ID, 2))
+                cur.execute(f"""
+                    SELECT TRANSACTION_ID 
+                    FROM {TransactionModel.TABLE_NAME} 
+                    WHERE TRANSACTION_ID LIKE 'T%%' 
+                    ORDER BY CAST(SUBSTRING(TRANSACTION_ID, 2) AS UNSIGNED) DESC 
+                    LIMIT 1
+                """)
                 last = cur.fetchone()
+                
+                next_num = 1
                 if last and last["TRANSACTION_ID"]:
-                    num = int(last["TRANSACTION_ID"][1:]) + 1
-                    return f"T{num:04d}"
-                return "T0001"
+                    try:
+                        # Cắt bỏ 1 ký tự đầu ("T")
+                        next_num = int(last["TRANSACTION_ID"][1:]) + 1
+                    except ValueError:
+                        next_num = 1
+
+                while True:
+                    # :03d cho 3 chữ số
+                    new_id = f"T{next_num:03d}" 
+                    
+                    cur.execute(f"SELECT TRANSACTION_ID FROM {TransactionModel.TABLE_NAME} WHERE TRANSACTION_ID = %s", (new_id,))
+                    if cur.fetchone():
+                        next_num += 1
+                    else:
+                        return new_id
         finally:
             conn.close()
 
@@ -34,6 +53,7 @@ class TransactionModel:
         currency="VND",
         account_type="checking"
     ):
+        # Tạo ID mới bằng hàm đã sửa
         transaction_id = TransactionModel.generate_transaction_id()
 
         conn = get_conn()
