@@ -11,7 +11,8 @@ from services.transaction_service import (
     deposit_confirm_service,
     withdraw_create_service,
     withdraw_confirm_service,
-    get_user_by_account_service
+    get_user_by_account_service,
+    verify_pin_service
 )
 
 # Base URL: /api/v1/transactions
@@ -211,3 +212,11 @@ def lookup_account_route(account_number):
         "status": "error",
         "message": "Không tìm thấy tài khoản"
     }), 404
+
+@bp.route("/verify-pin", methods=["POST"])
+def verify_pin():
+    data = request.get_json()
+    return verify_pin_service(
+        data.get("transaction_id"),
+        data.get("pin_code")
+    )
