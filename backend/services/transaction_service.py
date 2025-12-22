@@ -739,3 +739,93 @@ def get_user_by_account_service(account_number):
         return None
     finally:
         conn.close()
+
+def verify_pin_service(transaction_id, pin_code):
+    conn = get_conn()
+    try:
+        conn.begin()
+
+        # 1. Lấy giao dịch
+        tx = get_transaction_by_id_conn(conn, transaction_id)
+        if not tx:
+            conn.rollback()
+            return {"status": "error", "message": "Transaction not found"}
+
+        if tx["STATUS"] != "PENDING":
+            conn.rollback()
+            return {"status": "error", "message": "Transaction not pending"}
+
+        # 2. Lock account nguồn
+        account_id = tx["ACCOUNT_ID"]
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE",
+                (account_id,)
+            )
+            acc = cur.fetchone()
+
+        if not acc:
+            conn.rollback()
+            return {"status": "error", "message": "Account not found"}
+
+        # 3. Verify PIN
+        db_pin = acc.get("PIN_CODE")
+
+        if not db_pin:
+            conn.rollback()
+            return {"status": "error", "message": "Account has no PIN set"}
+
+        # ---- CASE 1: PIN LƯU DẠNG PLAINTEXT (DEMO) ----
+        if str(db_pin) != str(pin_code):
+            conn.rollback()
+            return {"status": "error", "message": "Invalid PIN"}
+
+        # ---- CASE 2: PIN HASH (KHUYẾN NGHỊ) ----
+        # from werkzeug.security import check_password_hash
+        # if not check_password_hash(db_pin, pin_code):
+        #     conn.rollback()
+        #     return {"status": "error", "message": "Invalid PIN"}
+
+        # 4. Tạo OTP
+        user_id = acc["USER_ID"]
+        otp = create_otp_conn(conn, user_id, purpose=tx["TYPE"])
+
+        # 5. Lấy EMAIL
+        user_email = None
+        with conn.cursor() as cur:
+            cur.execute("SELECT EMAIL FROM USER WHERE USER_ID = %s", (user_id,))
+            row = cur.fetchone()
+            if row:
+                user_email = row["EMAIL"] if isinstance(row, dict) else row[0]
+
+        if not user_email:
+            conn.rollback()
+            return {"status": "error", "message": "User has no email"}
+
+        # 6. Gửi Email OTP
+        html = otp_email_template(
+            otp["CODE"],
+            purpose=f"Xác nhận giao dịch {tx['TYPE']}"
+        )
+        sent, err = send_email(
+            user_email,
+            "Xác thực giao dịch - ZY Banking",
+            html
+        )
+
+        if not sent:
+            conn.rollback()
+            return {"status": "error", "message": "Failed to send OTP email"}
+
+        conn.commit()
+        return {
+            "status": "success",
+            "message": "PIN hợp lệ. OTP đã được gửi về Email"
+        }
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[VERIFY PIN ERROR] {e}")
+        return {"status": "error", "message": f"Server error: {e}"}
+    finally:
+        conn.close()

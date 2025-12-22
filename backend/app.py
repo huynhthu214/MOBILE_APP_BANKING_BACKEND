@@ -39,3 +39,35 @@ app.register_blueprint(admin_dashboard_bp, url_prefix='/api/v1')
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+@app.route("/mock/vnpay")
+def mock_vnpay():
+    pid = request.args.get("pid")
+    amount = request.args.get("amount")
+
+    return f"""
+    <h2>VNPay Sandbox</h2>
+    <p>Số tiền: {amount} VND</p>
+    <a href="/api/v1/payments/callback?pid={pid}&result=success">
+        Thanh toán thành công
+    </a><br><br>
+    <a href="/api/v1/payments/callback?pid={pid}&result=fail">
+        Hủy
+    </a>
+    """
+
+@app.route("/mock/stripe")
+def mock_stripe():
+    pid = request.args.get("pid")
+    amount = request.args.get("amount")
+
+    return f"""
+    <h2>Stripe Checkout</h2>
+    <p>Amount: {amount} VND</p>
+    <a href="/api/v1/payments/callback?pid={pid}&result=success">
+        Pay
+    </a><br><br>
+    <a href="/api/v1/payments/callback?pid={pid}&result=fail">
+        Cancel
+    </a>
+    """

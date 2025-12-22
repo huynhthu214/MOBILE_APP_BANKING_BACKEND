@@ -18,6 +18,9 @@ create table ACCOUNT
    primary key (ACCOUNT_ID)
 );
 
+ALTER TABLE ACCOUNT
+ADD COLUMN PIN_CODE VARCHAR(6) COMMENT '';
+
 /*==============================================================*/
 /* Table: BILL                                                  */
 /*==============================================================*/
@@ -201,3 +204,12 @@ create table UTILITY_PAYMENT
    primary key (UTILITY_PAYMENT_ID)
 );
 
+CREATE TABLE PAYMENT (
+    PAYMENT_ID VARCHAR(20) PRIMARY KEY,
+    USER_ID VARCHAR(10),
+    ACCOUNT_ID VARCHAR(10),
+    AMOUNT FLOAT,
+    PROVIDER VARCHAR(20), -- VNPAY | STRIPE
+    STATUS VARCHAR(20),   -- PENDING | SUCCESS | FAILED
+    CREATED_AT DATETIME
+);

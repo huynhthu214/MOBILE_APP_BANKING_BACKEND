@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cổng Thanh Toán Giả Lập</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .payment-card {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+      }
+      .provider-badge {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        background-color: #e3f2fd;
+        color: #1976d2;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+      h2 {
+        color: #333;
+        margin-bottom: 5px;
+      }
+      .amount {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 20px 0;
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 14px;
+        margin: 10px 0;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: opacity 0.2s;
+      }
+      .btn-success {
+        background-color: #27ae60;
+        color: white;
+      }
+      .btn-fail {
+        background-color: #ecf0f1;
+        color: #7f8c8d;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      .footer-note {
+        font-size: 12px;
+        color: #95a5a6;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="payment-card">
+      <div class="provider-badge">{{ provider }}</div>
+      <h2>Xác nhận thanh toán</h2>
+      <p style="color: #7f8c8d">Vui lòng nhấn nút bên dưới để hoàn tất</p>
+
+      <div class="amount">{{ "{:,.0f}".format(amount) }} VND</div>
+
+      <a href="{{ success_url }}" class="btn btn-success">
+        Xác nhận Thanh toán
+      </a>
+
+      <a href="{{ fail_url }}" class="btn btn-fail"> Hủy giao dịch </a>
+
+      <div class="footer-note">
+        Đây là môi trường thử nghiệm (Sandbox) của ZY Banking.
+      </div>
+    </div>
+  </body>
+</html>
