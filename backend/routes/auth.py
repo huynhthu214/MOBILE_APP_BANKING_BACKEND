@@ -97,3 +97,47 @@ def change_password_route():
     result = change_password(user_id, data) 
     
     return jsonify(result), result.get("status_code", 200)
+
+# Sửa lại route: Bỏ chữ '/auth' ở đầu đi vì Blueprint đã có rồi
+@bp.route('/last-token', methods=['GET'])
+def get_last_token():
+    email = request.args.get('email')
+    if not email:
+        return jsonify({"status": "error", "message": "Email is required"}), 400
+
+    # Import hàm kết nối DB (giả sử bạn để trong file db.py)
+    from db import get_conn 
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Query tìm token mới nhất chưa bị thu hồi (REVOKED=0) của user có email tương ứng
+            query = """
+                    SELECT t.TOKEN, u.ROLE, u.USER_ID, u.FULL_NAME
+                    FROM `USER` u 
+                    JOIN refresh_token t ON u.USER_ID = t.USER_ID  -- <-- Đã đổi thành refresh_token
+                    WHERE u.EMAIL = %s AND t.REVOKED = 0 
+                    ORDER BY t.CREATED_AT DESC LIMIT 1
+                """
+            cur.execute(query, (email,))
+            row = cur.fetchone()
+
+            if row:
+                # Trả về JSON đúng cấu trúc mà LoginResponse bên Android đang đợi
+                return jsonify({
+                    "status": "success",
+                    "data": {
+                        "access_token": row['TOKEN'],
+                        "user": {
+                            "USER_ID": row['USER_ID'],
+                            "ROLE": row['ROLE'],
+                            "FULL_NAME": row.get('FULL_NAME', 'User')
+                        }
+                    }
+                })
+            else:
+                return jsonify({"status": "error", "message": "No active session found"}), 404
+    except Exception as e:
+        print(e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        conn.close()

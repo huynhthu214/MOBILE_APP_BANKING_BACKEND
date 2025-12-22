@@ -8,6 +8,8 @@ from services.account_service import (
     pay_mortgage,
     get_account_summary,
     update_global_rates,
+    get_rates_from_file,
+    get_account_detail.
     get_rates_from_file
     # ĐÃ XÓA: get_account_detail_service (vì hàm này đã gộp vào get_account_summary)
 )
@@ -32,11 +34,16 @@ def route_create_account():
 
 @bp.route("", methods=["GET"])
 def route_list_accounts():
-    return jsonify(list_accounts())
+    # Lấy tham số 'search' từ URL: /api/v1/accounts?search=123
+    search_query = request.args.get('search', None)
+    result = list_accounts(search_query)
+    return jsonify(result), 200
 
 @bp.route("/<account_id>", methods=["GET"])
 def route_get_account(account_id):
-    return jsonify(get_account(account_id))
+    result = get_account_detail(account_id)
+    status_code = 200 if result["status"] == "success" else 404
+    return jsonify(result), status_code
 
 @bp.route("/<account_id>", methods=["PUT"])
 def route_update_account(account_id):
@@ -102,3 +109,4 @@ def route_pay_mortgage(account_id):
 def route_get_mortgage_schedule(account_id):
     from services.account_service import get_mortgage_schedule
     return jsonify(get_mortgage_schedule(account_id))
+

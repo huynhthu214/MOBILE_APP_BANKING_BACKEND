@@ -10,7 +10,7 @@ class UserBiometricModel:
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                biometric_id = f"BIO{int(datetime.utcnow().timestamp())}"
+                biometric_id = f"BIO{int(datetime.now().timestamp())}"
                 embedding_str = json.dumps(face_embedding.tolist())  # lưu dạng string
                 cur.execute(f"""
                     INSERT INTO {UserBiometricModel.TABLE} 
