@@ -219,3 +219,12 @@ create table UTILITY_PAYMENT
    CREATED_AT           datetime  comment '',
    primary key (UTILITY_PAYMENT_ID)
 );
+
+CREATE TABLE REFRESH_TOKEN (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    USER_ID varchar(10) NOT NULL,
+    TOKEN text NOT NULL,
+    CREATED_AT datetime NOT NULL,
+    EXPIRES_AT datetime NOT NULL,
+    REVOKED bool DEFAULT 0
+);

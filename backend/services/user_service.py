@@ -212,3 +212,44 @@ def get_me(user_id):
 
     finally:
         conn.close()
+        
+def get_user_detail_for_admin(user_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # 1. Lấy thông tin User cơ bản
+            cur.execute("SELECT * FROM USER WHERE USER_ID = %s", (user_id,))
+            user = cur.fetchone()
+            if not user:
+                return {"status": "error", "message": "User not found"}
+
+            # 2. Lấy thông tin EKYC (để biết đã xác thực chưa)
+            cur.execute("SELECT * FROM EKYC WHERE USER_ID = %s ORDER BY CREATED_AT DESC LIMIT 1", (user_id,))
+            ekyc = cur.fetchone()
+
+            # 3. Lấy danh sách tài khoản ngân hàng của User đó
+            cur.execute("SELECT * FROM ACCOUNT WHERE USER_ID = %s", (user_id,))
+            accounts = cur.fetchall()
+
+            # 4. Gom dữ liệu trả về
+            return {
+                "status": "success",
+                "data": {
+                    "user": {
+                        "USER_ID": user["USER_ID"],
+                        "FULL_NAME": user["FULL_NAME"],
+                        "EMAIL": user["EMAIL"],
+                        "PHONE": user["PHONE"],
+                        "ROLE": user["ROLE"],
+                        "IS_ACTIVE": bool(user["IS_ACTIVE"]), # Đảm bảo trả về boolean
+                        "CREATED_AT": str(user["CREATED_AT"])
+                    },
+                    "ekyc": {
+                        "STATUS": ekyc["STATUS"] if ekyc else "not_verified",
+                        "IMG_FRONT": ekyc["IMG_FRONT_URL"] if ekyc else None
+                    },
+                    "accounts": accounts # List các dict account
+                }
+            }
+    finally:
+        conn.close()

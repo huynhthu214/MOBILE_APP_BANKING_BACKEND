@@ -15,17 +15,22 @@ import datetime
 def create_ekyc(user_id, data):
     existing_ekyc = get_ekyc_by_user(user_id)
     if existing_ekyc:
-        status = existing_ekyc.get('STATUS')
-        if status == 'rejected':
-            # Redirect to update logic if rejected
+        # --- SỬA ĐOẠN NÀY ---
+        # Lấy status, chuyển về string để tránh lỗi None, và chuyển về chữ thường
+        raw_status = existing_ekyc.get('STATUS')
+        status = str(raw_status).lower().strip() if raw_status else ""
+
+        if status in ['rejected', 'disapproved']:
+            # Nếu bị từ chối, chuyển hướng sang hàm update
             return update_ekyc(user_id, data)
         elif status == 'pending':
              return {"status":"error","message":"EKYC is pending approval","status_code":400}
         elif status == 'approved':
              return {"status":"error","message":"EKYC already approved","status_code":400}
         else:
-             # Fallback for unknown status
-             return {"status":"error","message":"EKYC record exists","status_code":400}
+             # Trường hợp status lạ hoặc rỗng nhưng bản ghi vẫn tồn tại
+             # Cho phép update đè lên để sửa lỗi tắc nghẽn
+             return update_ekyc(user_id, data)
 
     # Dữ liệu nhận được là Base64 string
     front_b64 = data.get("ID_IMG_FRONT_URL")

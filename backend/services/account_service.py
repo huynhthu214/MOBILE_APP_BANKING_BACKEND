@@ -54,62 +54,63 @@ def update_account(account_id, **kwargs):
     return {"status": "success", "message": "Account updated"}
 
 def get_account_summary(account_id):
-    """
-    Hàm tổng hợp thông tin chi tiết tài khoản (thay thế cho get_account_detail_service cũ)
-    """
     acc = AccountModel.get_by_id(account_id)
     if not acc:
         return {"status": "error", "message": "Account not found"}
 
-    acc_type = acc["ACCOUNT_TYPE"].lower()
-    acc_num = acc.get("ACCOUNT_NUMBER")
+    from models.user_model import get_user_by_id
+    user = get_user_by_id(acc["USER_ID"])
+    owner_name = user["FULL_NAME"] if user else "Unknown"
     
+    # Lấy type chuẩn
+    acc_type = acc["ACCOUNT_TYPE"].lower() if acc.get("ACCOUNT_TYPE") else "checking"
+
+    # --- SỬA Ở ĐÂY: ĐỔI KEY THÀNH VIẾT HOA (UPPERCASE) ---
     response_data = {
-        "account_id": acc["ACCOUNT_ID"],
-        "account_number": acc_num,
-        "balance": float(acc["BALANCE"]),
-        "type": acc_type.upper(),
-        "currency": acc.get("CURRENCY", "VND"),
-        "interest_rate": float(acc.get("INTEREST_RATE", 0))
+        "ACCOUNT_ID": acc["ACCOUNT_ID"],
+        "ACCOUNT_NUMBER": acc.get("ACCOUNT_NUMBER"),
+        "BALANCE": float(acc["BALANCE"]),
+        "ACCOUNT_TYPE": acc_type,       # Để khớp logic hiển thị
+        "STATUS": acc["STATUS"],
+        "FULL_NAME": owner_name,        # Khớp với @SerializedName("FULL_NAME")
+        "CURRENCY": acc.get("CURRENCY", "VND"),
+        "INTEREST_RATE": float(acc.get("INTEREST_RATE", 0))
     }
 
-    # --- CHECKING ---
     if acc_type == "checking":
+        # Giữ nguyên logic transaction
         txs = get_transactions(account_id)
         last_tx = txs[:10] if txs and len(txs) >= 10 else (txs or [])
-        response_data["last_transactions"] = last_tx
+        response_data["LAST_TRANSACTIONS"] = last_tx
 
-    # --- SAVING ---
     elif acc_type == "saving":
         saving = SavingDetailModel.get_by_account(account_id)
         if saving:
+            # Tính lãi
             monthly_interest = (float(saving["PRINCIPAL_AMOUNT"]) * float(saving["INTEREST_RATE"]) / 100) / 12
+            # Update key viết hoa
             response_data.update({
-                "interest_rate": float(saving["INTEREST_RATE"]),
-                "monthly_interest": round(monthly_interest, 2),
-                "principal_amount": float(saving["PRINCIPAL_AMOUNT"]),
-                "term_months": saving["TERM_MONTHS"],
-                "maturity_date": str(saving["MATURITY_DATE"]),
-                "start_date": str(saving["START_DATE"])
+                "INTEREST_RATE": float(saving["INTEREST_RATE"]),
+                "PRINCIPAL_AMOUNT": float(saving["PRINCIPAL_AMOUNT"]),
+                "TERM_MONTHS": saving["TERM_MONTHS"],
+                "MATURITY_DATE": str(saving["MATURITY_DATE"]),
+                "START_DATE": str(saving["START_DATE"])
             })
 
-    # --- MORTGAGE ---
     elif acc_type == "mortgage":
         mort = MortageDetailModel.get_by_account(account_id)
         if mort:
+            # Update key viết hoa
             response_data.update({
-                "remaining_balance": float(mort["REMAINING_BALANCE"]),
-                "next_payment_date": str(mort["NEXT_PAYMENT_DATE"]),
-                "payment_amount": float(mort["PAYMENT_AMOUNT"]),
-                "loan_end_date": str(mort["LOAN_END_DATE"]), 
-                "payment_frequency": mort.get("PAYMEN_FREQUENCY", "Monthly"),
-                "total_loan_amount": float(mort["TOTAL_LOAN_AMOUNT"])
+                "REMAINING_BALANCE": float(mort["REMAINING_BALANCE"]),
+                "NEXT_PAYMENT_DATE": str(mort["NEXT_PAYMENT_DATE"]),
+                "PAYMENT_AMOUNT": float(mort["PAYMENT_AMOUNT"]),
+                "LOAN_END_DATE": str(mort["LOAN_END_DATE"]),
+                "PAYMENT_FREQUENCY": mort.get("PAYMEN_FREQUENCY", "Monthly"),
+                "TOTAL_LOAN_AMOUNT": float(mort["TOTAL_LOAN_AMOUNT"])
             })
-
-    return {
-        "status": "success",
-        "data": response_data
-    }
+    
+    return {"status": "success", "data": response_data}
 
 # ===== SAVING DETAIL =====
 def create_saving_detail(account_id, principal_amount, interest_rate, term_months, start_date=None, maturity_date=None):

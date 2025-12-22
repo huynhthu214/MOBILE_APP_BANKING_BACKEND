@@ -108,7 +108,7 @@ def update_ekyc_images(user_id, front, back, selfie):
                     STATUS='pending',
                     REVIEWED_AT=NULL,
                     REVIEWED_BY=NULL
-                WHERE USER_ID=%s AND STATUS='rejected'
+                WHERE USER_ID=%s AND (STATUS IN ('rejected', 'disapproved') OR STATUS IS NULL)
             """, (front, back, selfie, user_id))
             conn.commit()
             return cur.rowcount

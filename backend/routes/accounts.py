@@ -9,7 +9,7 @@ from services.account_service import (
     get_account_summary,
     update_global_rates,
     get_rates_from_file,
-    get_account_detail.
+    get_account_detail,
     get_rates_from_file
     # ĐÃ XÓA: get_account_detail_service (vì hàm này đã gộp vào get_account_summary)
 )

@@ -130,11 +130,16 @@ def search_users(keyword=""):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("""
+            # Tìm theo Tên, Email HOẶC User ID
+            sql = """
                 SELECT * FROM USER
-                WHERE FULL_NAME LIKE %s OR EMAIL LIKE %s
+                WHERE FULL_NAME LIKE %s 
+                OR EMAIL LIKE %s
+                OR USER_ID LIKE %s  
                 ORDER BY CREATED_AT DESC
-            """, (f"%{keyword}%", f"%{keyword}%"))
+            """
+            like_val = f"%{keyword}%"
+            cur.execute(sql, (like_val, like_val, like_val))
             return cur.fetchall()
     finally:
         conn.close()

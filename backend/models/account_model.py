@@ -39,16 +39,21 @@ class AccountModel:
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                # JOIN với bảng USER để lấy FULL_NAME
                 base_sql = """
                     SELECT a.*, u.FULL_NAME 
                     FROM ACCOUNT a 
                     LEFT JOIN USER u ON a.USER_ID = u.USER_ID
                 """
                 if search_query:
-                    sql = base_sql + " WHERE a.ACCOUNT_NUMBER LIKE %s OR u.FULL_NAME LIKE %s"
+                    # THÊM: OR a.ACCOUNT_TYPE LIKE %s
+                    sql = base_sql + """ 
+                        WHERE a.ACCOUNT_NUMBER LIKE %s 
+                        OR u.FULL_NAME LIKE %s 
+                        OR a.ACCOUNT_TYPE LIKE %s 
+                    """
                     like_val = f"%{search_query}%"
-                    cur.execute(sql, (like_val, like_val))
+                    # Truyền 3 tham số like_val
+                    cur.execute(sql, (like_val, like_val, like_val))
                 else:
                     cur.execute(base_sql)
                 return cur.fetchall()
