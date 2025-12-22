@@ -35,27 +35,35 @@ class AccountModel:
             conn.close()
 
     @staticmethod
-    def list_all():
+    def list_all(search_query=None):
         conn = get_conn()
         try:
             with conn.cursor() as cur:
-                cur.execute(f"SELECT * FROM {AccountModel.TABLE_NAME}")
+                # JOIN với bảng USER để lấy FULL_NAME
+                base_sql = """
+                    SELECT a.*, u.FULL_NAME 
+                    FROM ACCOUNT a 
+                    LEFT JOIN USER u ON a.USER_ID = u.USER_ID
+                """
+                if search_query:
+                    sql = base_sql + " WHERE a.ACCOUNT_NUMBER LIKE %s OR u.FULL_NAME LIKE %s"
+                    like_val = f"%{search_query}%"
+                    cur.execute(sql, (like_val, like_val))
+                else:
+                    cur.execute(base_sql)
                 return cur.fetchall()
         finally:
             conn.close()
 
     @staticmethod
     def get_by_id(account_id):
-        conn = get_conn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    f"SELECT * FROM {AccountModel.TABLE_NAME} WHERE ACCOUNT_ID=%s",
-                    (account_id,)
-                )
-                return cur.fetchone()
-        finally:
-            conn.close()
+            conn = get_conn()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(f"SELECT * FROM {AccountModel.TABLE_NAME} WHERE ACCOUNT_ID=%s", (account_id,))
+                    return cur.fetchone()
+            finally:
+                conn.close()
 
     @staticmethod
     def update(account_id, **kwargs):

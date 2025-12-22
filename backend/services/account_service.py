@@ -21,8 +21,18 @@ def create_account(user_id, account_type, balance=0.0, interest_rate=0.0, status
         "ACCOUNT_ID": account_id
     }
 
-def list_accounts():
-    return {"status": "success", "data": AccountModel.list_all()}
+def list_accounts(search_query=None):
+    accounts = AccountModel.list_all(search_query)  
+    return {
+        "status": "success",
+        "data": accounts
+    }
+    
+def get_account_detail(account_id):
+    account = AccountModel.get_by_id(account_id)
+    if not account:
+        return {"status": "error", "message": "Không tìm thấy tài khoản"}
+    return {"status": "success", "data": account}
 
 def get_transactions(account_id, limit=None):
     # LƯU Ý: Đảm bảo bạn đã thêm hàm get_by_account vào TransactionModel như hướng dẫn trước
@@ -349,3 +359,4 @@ def update_savings_bulk(term_months, new_rate):
         print(f"Error updating savings term {term_months}: {e}")
     finally:
         conn.close()
+        
