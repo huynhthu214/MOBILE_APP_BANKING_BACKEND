@@ -4,11 +4,14 @@ from datetime import datetime, timedelta
 import random
 import string
 
+# --- IMPORT SERVICE CỦA BẠN (DÙNG LẠI) ---
+from services.mail_service import send_email
+from services.mail_templates import otp_email_template
+
 def now():
     return datetime.now()
 
 def generate_sequential_id(prefix, table_name, id_col, width=6, conn=None):
-
     close_conn = False
     if conn is None:
         conn = get_conn()
@@ -16,35 +19,21 @@ def generate_sequential_id(prefix, table_name, id_col, width=6, conn=None):
 
     try:
         with conn.cursor() as cur:
-            # If we are inside a transaction, use FOR UPDATE to lock the selected row.
-            # Use a simple query ordering by id desc; assumes zero-padded numeric part.
             query = f"SELECT {id_col} FROM {table_name} ORDER BY {id_col} DESC LIMIT 1"
             try:
-                # If conn is part of a transaction and DB engine supports row-level locks,
-                # appending FOR UPDATE will lock the selected row. Only do FOR UPDATE when conn is in a transaction.
-                # We'll attempt FOR UPDATE — if DB complains, it's okay fallback to no FOR UPDATE.
                 cur.execute(query + " FOR UPDATE")
             except Exception:
                 cur.execute(query)
 
             row = cur.fetchone()
-            # row may be None, tuple, or dict-like. Try to extract string id robustly.
             last_id = None
-            if not row:
-                last_id = None
-            else:
-                # If row is dict-like
+            if row:
                 try:
-                    if isinstance(row, dict):
-                        last_id = list(row.values())[0]
-                    else:
-                        # tuple-like -> row[0]
-                        last_id = row[0]
+                    last_id = list(row.values())[0] if isinstance(row, dict) else row[0]
                 except Exception:
                     last_id = None
 
             if last_id:
-                # remove prefix (e.g. 'T') and parse numeric part
                 num_part = last_id.replace(prefix, "")
                 try:
                     number = int(num_part)
@@ -62,16 +51,14 @@ def generate_sequential_id(prefix, table_name, id_col, width=6, conn=None):
 def generate_otp_code(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
-# Stub for sending OTP — integrate real SMS/Email provider here
 def send_otp_to_user(user_phone, code, purpose="transaction"):
-    # TODO: integrate with SMS gateway or email
+    # TODO: integrate with SMS gateway
     print(f"[DEBUG] Sending OTP {code} to {user_phone} for {purpose}")
     return True
 
 # -------------------------
 # DB Access helpers
 # -------------------------
-
 def get_account_by_id(conn, account_id):
     with conn.cursor() as cur:
         cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s", (account_id,))
@@ -87,6 +74,7 @@ def update_account_balance(conn, account_id, new_balance):
         cur.execute("UPDATE ACCOUNT SET BALANCE = %s WHERE ACCOUNT_ID = %s", (new_balance, account_id))
 
 def insert_transaction(conn, tx):
+    # Đảm bảo key khớp với tên cột trong DB
     cols = ", ".join(tx.keys())
     placeholders = ", ".join(["%s"] * len(tx))
     vals = list(tx.values())
@@ -109,7 +97,7 @@ def update_transaction_status_conn(conn, transaction_id, status, complete_at=Non
 
 # OTP helpers
 def create_otp_conn(conn, user_id, purpose, expiry_seconds=300):
-    otp_id = generate_sequential_id("O", "OTP", "OTP_ID", width=6, conn=None)  # it's okay to create OTP with separate conn
+    otp_id = generate_sequential_id("O", "OTP", "OTP_ID", width=6, conn=conn) 
     code = generate_otp_code()
     created = now()
     expires = created + timedelta(seconds=expiry_seconds)
@@ -133,32 +121,69 @@ def mark_otp_used_conn(conn, otp_id):
         cur.execute("UPDATE OTP SET IS_USED = %s WHERE OTP_ID = %s", (True, otp_id))
 
 # -------------------------
-# Public services (API handlers)
+# Public services
 # -------------------------
 
-# 1) List transactions (global search / admin)
-def list_transactions_service(keyword="", page=1, size=50):
-    offset = (page - 1) * size
+# !!! NEW FUNCTION ADDED TO FIX IMPORT ERROR !!!
+def create_transaction(tx_data):
+    """
+    Hàm này được dùng bởi các service khác (ví dụ: account_service.pay_mortgage)
+    để tạo giao dịch trực tiếp mà không cần quy trình OTP.
+    """
+    # Chuẩn hóa key thành chữ hoa để khớp với DB (nếu tx_data truyền vào là chữ thường)
+    normalized_tx = {k.upper(): v for k, v in tx_data.items()}
+    
+    if "CREATED_AT" not in normalized_tx:
+        normalized_tx["CREATED_AT"] = now()
+
     conn = get_conn()
     try:
+        insert_transaction(conn, normalized_tx)
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"[create_transaction] Error: {e}")
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+# 1) List transactions (Global)
+def list_transactions_service(keyword="", page=1, size=50, account_id=None):
+    conn = get_conn()
+    try:
+        # Chuyển đổi page/size sang int đề phòng trường hợp truyền vào string
+        _page = int(page)
+        _size = int(size)
+        offset = (_page - 1) * _size
+        
         with conn.cursor() as cur:
-            if keyword:
+            # Trường hợp 1: Lọc theo account_id (Lịch sử giao dịch của 1 người)
+            if account_id:
+                 cur.execute(
+                    "SELECT * FROM TRANSACTIONS WHERE ACCOUNT_ID=%s ORDER BY CREATED_AT DESC LIMIT %s OFFSET %s",
+                    (account_id, _size, offset)
+                )
+            
+            # Trường hợp 2: Search chung (Admin hoặc tìm kiếm)
+            elif keyword:
                 kw = f"%{keyword}%"
                 cur.execute(
                     """SELECT * FROM TRANSACTIONS
                        WHERE TRANSACTION_ID LIKE %s
                           OR ACCOUNT_ID LIKE %s
                           OR DEST_ACC_NUM LIKE %s
-                          OR DEST_ACC_NAME LIKE %s
-                       ORDER BY CREATED_AT DESC
-                       LIMIT %s OFFSET %s""",
-                    (kw, kw, kw, kw, size, offset)
+                       ORDER BY CREATED_AT DESC LIMIT %s OFFSET %s""",
+                    (kw, kw, kw, _size, offset)
                 )
+            
+            # Trường hợp 3: Lấy tất cả (Mặc định)
             else:
                 cur.execute(
                     "SELECT * FROM TRANSACTIONS ORDER BY CREATED_AT DESC LIMIT %s OFFSET %s",
-                    (size, offset)
+                    (_size, offset)
                 )
+            
             rows = cur.fetchall()
         return {"status": "success", "data": rows}
     finally:
@@ -175,27 +200,9 @@ def get_transaction_service(transaction_id):
     finally:
         conn.close()
 
-# 3) Get account transactions (history) with filters
+# 3) Get account transactions
 def get_account_transactions_service(account_id, from_dt=None, to_dt=None, page=1, size=30):
-    offset = (page - 1) * size
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            query = "SELECT * FROM TRANSACTIONS WHERE ACCOUNT_ID = %s"
-            params = [account_id]
-            if from_dt:
-                query += " AND CREATED_AT >= %s"
-                params.append(from_dt)
-            if to_dt:
-                query += " AND CREATED_AT <= %s"
-                params.append(to_dt)
-            query += " ORDER BY CREATED_AT DESC LIMIT %s OFFSET %s"
-            params.extend([size, offset])
-            cur.execute(query, tuple(params))
-            rows = cur.fetchall()
-        return {"status": "success", "data": rows}
-    finally:
-        conn.close()
+    return list_transactions_service(page=page, size=size, account_id=account_id)
 
 # -------------------------
 # Deposit flow (create -> confirm)
@@ -203,17 +210,19 @@ def get_account_transactions_service(account_id, from_dt=None, to_dt=None, page=
 
 def deposit_create_service(account_id, amount, currency="VND"):
     if amount is None or amount <= 0:
-        return {"status": "error", "message": "Invalid amount"}
+        return {"status": "error", "message": "Số tiền không hợp lệ"}
 
     conn = get_conn()
     try:
         conn.begin()
+        
+        # 1. Kiểm tra tài khoản
         acc = get_account_by_id(conn, account_id)
         if not acc:
             conn.rollback()
-            return {"status": "error", "message": "Account not found"}
+            return {"status": "error", "message": "Tài khoản không tồn tại"}
 
-        # generate tx id inside this transaction and lock
+        # 2. Tạo Transaction ID
         tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
 
         tx = {
@@ -233,20 +242,44 @@ def deposit_create_service(account_id, amount, currency="VND"):
         }
         insert_transaction(conn, tx)
 
-        # create OTP and send
-        otp = create_otp_conn(conn, acc.get("USER_ID"), purpose="deposit")
-        # fetch user phone
+        # 3. Tạo OTP
+        user_id = acc.get("USER_ID")
+        otp = create_otp_conn(conn, user_id, purpose="deposit")
+        
+        # 4. Lấy EMAIL từ bảng USER (Query trực tiếp, không qua User Model)
+        user_email = None
         with conn.cursor() as cur:
-            cur.execute("SELECT PHONE FROM USER WHERE USER_ID = %s", (acc.get("USER_ID"),))
+            cur.execute("SELECT EMAIL FROM USER WHERE USER_ID = %s", (user_id,))
             user_row = cur.fetchone()
-            phone = user_row["PHONE"] if user_row else None
-        if phone:
-            send_otp_to_user(phone, otp["CODE"], purpose="deposit")
+            if user_row:
+                # Xử lý trường hợp DB trả về dict hoặc tuple
+                user_email = user_row["EMAIL"] if isinstance(user_row, dict) else user_row[0]
+
+        # 5. Gửi Email OTP
+        if user_email:
+            html_content = otp_email_template(otp["CODE"], purpose="Giao dịch Nạp tiền")
+            is_sent, error_msg = send_email(user_email, "Xác thực Nạp tiền - ZY Banking", html_content)
+            
+            if not is_sent:
+                conn.rollback()
+                print(f"[MAIL ERROR] {error_msg}")
+                return {"status": "error", "message": "Lỗi gửi email OTP. Vui lòng thử lại sau."}
+        else:
+            conn.rollback()
+            return {"status": "error", "message": "Tài khoản này chưa đăng ký Email."}
+
+        # 6. Thành công
         conn.commit()
-        return {"status": "success", "transaction_id": tx_id, "message": "Deposit created, awaiting OTP"}
+        return {
+            "status": "success", 
+            "transaction_id": tx_id, 
+            "message": "Mã OTP đã được gửi tới email của bạn."
+        }
+
     except Exception as e:
         conn.rollback()
-        return {"status": "error", "message": f"Server error: {e}"}
+        print(f"[SYSTEM ERROR] {e}")
+        return {"status": "error", "message": f"Lỗi hệ thống: {str(e)}"}
     finally:
         conn.close()
 
@@ -254,42 +287,60 @@ def deposit_confirm_service(transaction_id, otp_code):
     conn = get_conn()
     try:
         conn.begin()
+        
+        # 1. Lấy thông tin giao dịch
         tx = get_transaction_by_id_conn(conn, transaction_id)
         if not tx:
             conn.rollback()
-            return {"status": "error", "message": "Transaction not found"}
+            return {"status": "error", "message": "Giao dịch không tồn tại"}
 
+        # 2. Kiểm tra trạng thái giao dịch (Chỉ xử lý nếu đang PENDING)
         if tx["STATUS"] != "PENDING":
             conn.rollback()
-            return {"status": "error", "message": "Invalid transaction status"}
+            return {"status": "error", "message": "Giao dịch đã hoàn tất hoặc bị hủy trước đó"}
 
         account_id = tx["ACCOUNT_ID"]
-        acc = get_account_by_id(conn, account_id)
+
+        # 3. Khóa tài khoản (Locking) để tránh xung đột dữ liệu
+        # Dùng FOR UPDATE để đảm bảo không ai sửa tài khoản này khi đang nạp
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE", (account_id,))
+            acc = cur.fetchone()
+
         if not acc:
             conn.rollback()
-            return {"status": "error", "message": "Account not found"}
+            return {"status": "error", "message": "Tài khoản không tồn tại"}
 
-        # validate otp
+        # 4. Xác thực OTP
+        # Lưu ý: acc["USER_ID"] lấy từ bảng ACCOUNT đã lock
         otp_row = get_valid_otp_conn(conn, acc["USER_ID"], otp_code, "deposit")
+        
         if not otp_row:
             conn.rollback()
-            return {"status": "error", "message": "Invalid or expired OTP"}
+            return {"status": "error", "message": "Mã OTP không đúng hoặc đã hết hạn"}
 
-        # mark otp used
+        # 5. Đánh dấu OTP đã sử dụng
         mark_otp_used_conn(conn, otp_row["OTP_ID"])
 
-        # apply deposit: increase balance
-        new_balance = (acc["BALANCE"] or 0) + tx["AMOUNT"]
-        update_account_balance(conn, account_id, new_balance)
+        # 6. CẬP NHẬT SỐ DƯ (QUAN TRỌNG)
+        # Sử dụng câu lệnh SQL cộng trực tiếp để đảm bảo an toàn tuyệt đối
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ACCOUNT SET BALANCE = BALANCE + %s WHERE ACCOUNT_ID = %s", 
+                (tx["AMOUNT"], account_id)
+            )
 
-        # update transaction
+        # 7. Cập nhật trạng thái giao dịch -> COMPLETED
         update_transaction_status_conn(conn, transaction_id, "COMPLETED", complete_at=now())
 
         conn.commit()
-        return {"status": "success", "message": "Deposit completed"}
+        return {"status": "success", "message": "Nạp tiền thành công"}
+
     except Exception as e:
         conn.rollback()
-        return {"status": "error", "message": f"Server error: {e}"}
+        # Log lỗi ra console để debug
+        print(f"[DEPOSIT ERROR] TransactionID: {transaction_id} - Error: {str(e)}")
+        return {"status": "error", "message": f"Lỗi hệ thống: {str(e)}"}
     finally:
         conn.close()
 
@@ -299,24 +350,28 @@ def deposit_confirm_service(transaction_id, otp_code):
 
 def withdraw_create_service(account_id, amount, currency="VND"):
     if amount is None or amount <= 0:
-        return {"status": "error", "message": "Invalid amount"}
+        return {"status": "error", "message": "Số tiền không hợp lệ"}
 
     conn = get_conn()
     try:
         conn.begin()
+        
+        # 1. Kiểm tra tài khoản
         acc = get_account_by_id(conn, account_id)
         if not acc:
             conn.rollback()
-            return {"status": "error", "message": "Account not found"}
+            return {"status": "error", "message": "Tài khoản không tồn tại"}
 
-        # check balance
-        if (acc["BALANCE"] or 0) < amount:
+        # 2. Kiểm tra số dư
+        # Lưu ý: Database trả về Decimal hoặc int, cần đảm bảo so sánh đúng kiểu
+        current_balance = acc.get("BALANCE") or 0
+        if current_balance < amount:
             conn.rollback()
-            return {"status": "error", "message": "Insufficient balance"}
+            return {"status": "error", "message": "Số dư không đủ"}
 
-        # TODO: EKYC + daily limit checks here
-
+        # 3. Tạo Transaction ID
         tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
+        
         tx = {
             "TRANSACTION_ID": tx_id,
             "PAYMENT_ID": None,
@@ -334,20 +389,44 @@ def withdraw_create_service(account_id, amount, currency="VND"):
         }
         insert_transaction(conn, tx)
 
-        # create OTP and send
-        otp = create_otp_conn(conn, acc.get("USER_ID"), purpose="withdraw")
+        # 4. Tạo OTP trong DB (Dùng user_id từ account)
+        user_id = acc.get("USER_ID")
+        otp = create_otp_conn(conn, user_id, purpose="withdraw")
+        
+        # 5. Lấy EMAIL trực tiếp từ bảng USER bằng câu lệnh SQL
+        # (Không gọi hàm từ user_model để tránh xung đột connection)
+        user_email = None
         with conn.cursor() as cur:
-            cur.execute("SELECT PHONE FROM USER WHERE USER_ID = %s", (acc.get("USER_ID"),))
+            cur.execute("SELECT EMAIL FROM USER WHERE USER_ID = %s", (user_id,))
             user_row = cur.fetchone()
-            phone = user_row["PHONE"] if user_row else None
-        if phone:
-            send_otp_to_user(phone, otp["CODE"], purpose="withdraw")
+            if user_row:
+                # Xử lý trường hợp row trả về dict hoặc tuple
+                user_email = user_row["EMAIL"] if isinstance(user_row, dict) else user_row[0]
+
+        # 6. Gửi Email
+        if user_email:
+            html_content = otp_email_template(otp["CODE"], purpose="Giao dịch Rút tiền")
+            is_sent, error_msg = send_email(user_email, "Xác thực Rút tiền - ZY Banking", html_content)
+            
+            if not is_sent:
+                conn.rollback()
+                print(f"[MAIL ERROR] {error_msg}")
+                return {"status": "error", "message": "Lỗi gửi email OTP. Vui lòng thử lại sau."}
+        else:
+            conn.rollback()
+            return {"status": "error", "message": "Tài khoản này chưa đăng ký Email."}
 
         conn.commit()
-        return {"status": "success", "transaction_id": tx_id, "message": "Withdraw created, awaiting OTP"}
+        return {
+            "status": "success", 
+            "transaction_id": tx_id, 
+            "message": "Mã OTP đã được gửi tới email của bạn."
+        }
+
     except Exception as e:
         conn.rollback()
-        return {"status": "error", "message": f"Server error: {e}"}
+        print(f"[SYSTEM ERROR] {e}")
+        return {"status": "error", "message": f"Lỗi hệ thống: {str(e)}"}
     finally:
         conn.close()
 
@@ -410,34 +489,48 @@ def withdraw_confirm_service(transaction_id, otp_code):
 
 def transfer_create_service(from_account_id, to_account_number, amount, to_bank_code="LOCAL", currency="VND", note=None):
     if amount is None or amount <= 0:
-        return {"status": "error", "message": "Invalid amount"}
+        return {"status": "error", "message": "Số tiền không hợp lệ"}
 
     conn = get_conn()
     try:
         conn.begin()
+        
+        # 1. Kiểm tra tài khoản nguồn
         src = get_account_by_id(conn, from_account_id)
         if not src:
             conn.rollback()
-            return {"status": "error", "message": "Source account not found"}
+            return {"status": "error", "message": "Tài khoản nguồn không tồn tại"}
 
-        if (src["BALANCE"] or 0) < amount:
+        # 2. Kiểm tra số dư
+        current_balance = src.get("BALANCE") or 0
+        if current_balance < amount:
             conn.rollback()
-            return {"status": "error", "message": "Insufficient balance"}
+            return {"status": "error", "message": "Số dư không đủ"}
 
-        # Destination account lookup for LOCAL transfers
-        dest = None
+        # 3. Kiểm tra tài khoản đích
         dest_name = None
+        
         if to_bank_code == "LOCAL":
+            # --- LOGIC NỘI BỘ (GIỮ NGUYÊN) ---
             dest = get_account_by_number(conn, to_account_number)
             if not dest:
                 conn.rollback()
-                return {"status": "error", "message": "Destination account not found"}
-            # dest name should be user's FULL_NAME
+                return {"status": "error", "message": "Tài khoản người nhận không tồn tại trong hệ thống"}
+            
+            # Lấy tên người nhận nội bộ
             with conn.cursor() as cur:
                 cur.execute("SELECT FULL_NAME FROM USER WHERE USER_ID = %s", (dest["USER_ID"],))
                 u = cur.fetchone()
-                dest_name = u["FULL_NAME"] if u else None
+                if u:
+                    dest_name = u["FULL_NAME"] if isinstance(u, dict) else u[0]
+        else:
+            # --- LOGIC LIÊN NGÂN HÀNG (MỚI) ---
+            # Vì là external, ta không check DB. 
+            # Giả lập tên người nhận để hiển thị cho đẹp lịch sử giao dịch.
+            # Trong thực tế, bước này sẽ gọi API của NAPAS để tra cứu tên.
+            dest_name = f"KHACH HANG {to_bank_code}" 
 
+        # 4. Tạo Transaction
         tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
         tx = {
             "TRANSACTION_ID": tx_id,
@@ -450,26 +543,55 @@ def transfer_create_service(from_account_id, to_account_number, amount, to_bank_
             "CREATED_AT": now(),
             "COMPLETE_AT": None,
             "DEST_ACC_NUM": to_account_number,
-            "DEST_ACC_NAME": dest_name,
+            "DEST_ACC_NAME": dest_name, # Lưu tên người nhận (Thật hoặc Giả lập)
             "DEST_BANK_CODE": to_bank_code,
             "TYPE": "transfer"
         }
+        # Lưu ý: Bạn cần đảm bảo bảng TRANSACTIONS có cột DESCRIPTION hoặc NOTE nếu muốn lưu note
+        # Nếu chưa có cột đó, ta tạm bỏ qua biến 'note'
+        
         insert_transaction(conn, tx)
 
-        # create and send OTP to source user
-        otp = create_otp_conn(conn, src.get("USER_ID"), purpose="transfer")
+        # 5. Tạo OTP cho người gửi
+        user_id = src.get("USER_ID")
+        otp = create_otp_conn(conn, user_id, purpose="transfer")
+        
+        # 6. Lấy EMAIL
+        user_email = None
         with conn.cursor() as cur:
-            cur.execute("SELECT PHONE FROM USER WHERE USER_ID = %s", (src.get("USER_ID"),))
+            cur.execute("SELECT EMAIL FROM USER WHERE USER_ID = %s", (user_id,))
             user_row = cur.fetchone()
-            phone = user_row["PHONE"] if user_row else None
-        if phone:
-            send_otp_to_user(phone, otp["CODE"], purpose="transfer")
+            if user_row:
+                user_email = user_row["EMAIL"] if isinstance(user_row, dict) else user_row[0]
+
+        # 7. Gửi Email
+        if user_email:
+            # Tùy chỉnh nội dung email một chút cho chuyên nghiệp
+            bank_display = "Nội bộ ZyBanking" if to_bank_code == "LOCAL" else to_bank_code
+            email_subject = f"OTP Chuyển khoản tới {bank_display}"
+            
+            html_content = otp_email_template(otp["CODE"], purpose=f"Chuyển khoản tới {to_account_number} ({bank_display})")
+            is_sent, error_msg = send_email(user_email, email_subject, html_content)
+            
+            if not is_sent:
+                conn.rollback()
+                print(f"[MAIL ERROR] {error_msg}")
+                return {"status": "error", "message": "Lỗi gửi email OTP: " + error_msg}
+        else:
+            conn.rollback()
+            return {"status": "error", "message": "Tài khoản chưa đăng ký Email"}
 
         conn.commit()
-        return {"status": "success", "transaction_id": tx_id, "message": "Transfer created, awaiting OTP"}
+        return {
+            "status": "success", 
+            "transaction_id": tx_id, 
+            "message": f"OTP đã gửi. Đang chuyển tới {to_bank_code}"
+        }
+
     except Exception as e:
         conn.rollback()
-        return {"status": "error", "message": f"Server error: {e}"}
+        print(f"[SYSTEM ERROR] {e}")
+        return {"status": "error", "message": f"Lỗi hệ thống: {str(e)}"}
     finally:
         conn.close()
 
@@ -477,6 +599,8 @@ def transfer_confirm_service(transaction_id, otp_code):
     conn = get_conn()
     try:
         conn.begin()
+        
+        # 1. Lấy thông tin giao dịch
         tx = get_transaction_by_id_conn(conn, transaction_id)
         if not tx:
             conn.rollback()
@@ -489,8 +613,9 @@ def transfer_confirm_service(transaction_id, otp_code):
         source_account_id = tx["ACCOUNT_ID"]
         dest_acc_num = tx["DEST_ACC_NUM"]
         amount = tx["AMOUNT"]
+        to_bank_code = tx["DEST_BANK_CODE"] # Lấy mã ngân hàng
 
-        # lock source account
+        # 2. Lock tài khoản nguồn
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE", (source_account_id,))
             src = cur.fetchone()
@@ -498,48 +623,52 @@ def transfer_confirm_service(transaction_id, otp_code):
                 conn.rollback()
                 return {"status": "error", "message": "Source account not found"}
 
-        # validate otp
+        # 3. Validate OTP
         otp_row = get_valid_otp_conn(conn, src["USER_ID"], otp_code, "transfer")
         if not otp_row:
             conn.rollback()
             return {"status": "error", "message": "Invalid or expired OTP"}
 
-        # re-check balance
+        # 4. Check số dư lần cuối
         if (src["BALANCE"] or 0) < amount:
             conn.rollback()
             return {"status": "error", "message": "Insufficient balance"}
 
-        # find destination account (local)
+        # 5. Xử lý Tài khoản đích (CHỈ KHI LÀ LOCAL)
         dest = None
-        if tx["DEST_BANK_CODE"] == "LOCAL":
+        if to_bank_code == "LOCAL":
             dest = get_account_by_number(conn, dest_acc_num)
             if not dest:
+                # Trường hợp hiếm: lúc tạo thì có, giờ lại không thấy (xóa user?)
                 conn.rollback()
                 return {"status": "error", "message": "Destination account not found"}
-
-        # mark otp used
+            
+            # Lock tài khoản đích để tránh xung đột
+            with conn.cursor() as cur:
+                cur.execute("SELECT ACCOUNT_ID FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE", (dest["ACCOUNT_ID"],))
+        
+        # 6. Mark OTP used
         mark_otp_used_conn(conn, otp_row["OTP_ID"])
 
-        # debit source
-        new_src_balance = (src["BALANCE"] or 0) - amount
-        update_account_balance(conn, source_account_id, new_src_balance)
+        # 7. TRỪ TIỀN NGUỒN (Luôn thực hiện dù là Local hay External)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE ACCOUNT SET BALANCE = BALANCE - %s WHERE ACCOUNT_ID = %s", (amount, source_account_id))
 
-        # credit destination if local
-        if dest:
-            # lock dest row to be safe
+        # 8. CỘNG TIỀN ĐÍCH (Chỉ thực hiện nếu là LOCAL)
+        if to_bank_code == "LOCAL" and dest:
             with conn.cursor() as cur:
-                cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE", (dest["ACCOUNT_ID"],))
-                dest_locked = cur.fetchone()
-            new_dest_balance = (dest_locked["BALANCE"] or 0) + amount
-            update_account_balance(conn, dest_locked["ACCOUNT_ID"], new_dest_balance)
+                cur.execute("UPDATE ACCOUNT SET BALANCE = BALANCE + %s WHERE ACCOUNT_ID = %s", (amount, dest["ACCOUNT_ID"]))
+        
+        # Nếu là External: Tiền chỉ bị trừ ở nguồn, coi như đã chuyển sang hệ thống khác.
 
-        # update transaction status
+        # 9. Update Transaction Status
         update_transaction_status_conn(conn, transaction_id, "COMPLETED", complete_at=now())
 
         conn.commit()
-        return {"status": "success", "message": "Transfer completed"}
+        return {"status": "success", "message": "Transfer completed successfully"}
     except Exception as e:
         conn.rollback()
+        print(f"Transfer Confirm Error: {e}")
         return {"status": "error", "message": f"Server error: {e}"}
     finally:
         conn.close()
@@ -586,20 +715,27 @@ def resend_otp_service(transaction_id):
     finally:
         conn.close()
 
-def list_transactions_service(account_id=None):
+def get_user_by_account_service(account_number):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            if account_id:
-                cur.execute(
-                    "SELECT * FROM TRANSACTIONS WHERE ACCOUNT_ID=%s ORDER BY CREATED_AT DESC",
-                    (account_id,)
-                )
-            else:
-                cur.execute(
-                    "SELECT * FROM TRANSACTIONS ORDER BY CREATED_AT DESC"
-                )
-            rows = cur.fetchall()
-        return {"status": "success", "data": rows}
+            # Đảm bảo tên cột ACCOUNT_NUMBER và FULL_NAME viết đúng như trong DB của bạn
+            query = """
+                SELECT U.FULL_NAME 
+                FROM USER U
+                JOIN ACCOUNT A ON U.USER_ID = A.USER_ID
+                WHERE A.ACCOUNT_NUMBER = %s
+            """
+            cur.execute(query, (account_number,))
+            row = cur.fetchone()
+            
+            if row:
+                # Nếu fetchone() trả về dict (do dùng dictionary=True trong cursor)
+                name = row.get("FULL_NAME") or row.get("full_name")
+                return {"full_name": name}
+            return None
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
     finally:
         conn.close()

@@ -35,11 +35,11 @@ def login(data):
     if not user.get('IS_ACTIVE', 1):
         return {"status":"error","message":"account inactive","status_code":403}
 
-    # So sánh trực tiếp password
+    # So sánh password
     if password != user.get('PASSWORD'):
         return {"status":"error","message":"invalid credentials","status_code":401}
 
-    # Login có OTP
+    # Login có OTP (Giữ nguyên logic cũ)
     if require_otp:
         otp_id, code = create_otp(user['USER_ID'], purpose='login')
         return {
@@ -51,21 +51,44 @@ def login(data):
             }
         }
 
+    # Tạo token (Giữ nguyên)
     access_token = create_access_token(user['USER_ID'], user.get('ROLE'))
     refresh_token, expires = create_refresh_token(user['USER_ID'])
     store_refresh_token(user['USER_ID'], refresh_token, expires)
 
+    # --- CODE MỚI THÊM VÀO: LẤY ACCOUNT_ID ---
+    account_id = None
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Tìm Account ID dựa trên User ID
+            cur.execute("SELECT ACCOUNT_ID FROM ACCOUNT WHERE USER_ID = %s", (user['USER_ID'],))
+            row = cur.fetchone()
+            if row:
+                # Kiểm tra xem row là dict hay tuple (tùy cấu hình DB driver)
+                if isinstance(row, dict):
+                    account_id = row.get('ACCOUNT_ID')
+                else:
+                    account_id = row[0]
+    except Exception as e:
+        print(f"Error fetching account_id: {e}")
+    finally:
+        conn.close()
+    # -----------------------------------------
+
     safe_user = {k: v for k, v in user.items() if k != 'PASSWORD'}
+    
+    # Gán thêm ACCOUNT_ID vào object user trả về
+    safe_user['ACCOUNT_ID'] = account_id 
 
     return {
         "status":"success",
         "data":{
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "user": safe_user
+            "user": safe_user 
         }
     }
-
 
 def logout(data, auth_header=None):
     refresh_token = data.get('refresh_token')

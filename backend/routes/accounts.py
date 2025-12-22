@@ -9,19 +9,21 @@ from services.account_service import (
     get_account_summary,
     update_global_rates,
     get_rates_from_file
+    # ĐÃ XÓA: get_account_detail_service (vì hàm này đã gộp vào get_account_summary)
 )
 
 bp = Blueprint("account", __name__, url_prefix="/api/v1/accounts")
+
 @bp.route("/rates", methods=["GET", "PUT"])
 def route_handle_rates():
     if request.method == "GET":
-        # Đọc từ file rates.json trả về
         current_rates = get_rates_from_file()
         return jsonify({"status": "success", "data": current_rates})
 
     if request.method == "PUT":
         data = request.json
         return jsonify(update_global_rates(data))
+
 # ===== ACCOUNT =====
 @bp.route("", methods=["POST"])
 def route_create_account():
@@ -43,6 +45,8 @@ def route_update_account(account_id):
         del data['rate_12m']
         
     return jsonify(update_account(account_id, **data))
+
+# --- ĐÂY LÀ ROUTE CHUẨN ĐỂ LẤY CHI TIẾT TÀI KHOẢN ---
 @bp.route("/<account_id>/summary", methods=["GET"])
 def route_account_summary(account_id):
     result = get_account_summary(account_id)
