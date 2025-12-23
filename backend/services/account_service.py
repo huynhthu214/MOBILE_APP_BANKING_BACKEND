@@ -83,19 +83,31 @@ def get_account_summary(account_id):
         last_tx = txs[:10] if txs and len(txs) >= 10 else (txs or [])
         response_data["LAST_TRANSACTIONS"] = last_tx
 
+    # Trong file logic xử lý account summary
     elif acc_type == "saving":
-        saving = SavingDetailModel.get_by_account(account_id)
+        saving = SavingDetailModel.get_by_account(account_id) 
+        
         if saving:
-            # Tính lãi
-            monthly_interest = (float(saving["PRINCIPAL_AMOUNT"]) * float(saving["INTEREST_RATE"]) / 100) / 12
-            # Update key viết hoa
+            principal = float(saving["PRINCIPAL_AMOUNT"])
+            interest_rate = float(saving["INTEREST_RATE"])
+            term_months = int(saving["TERM_MONTHS"])
+
+            total_interest = principal * (interest_rate / 100) * (term_months / 12)
+            
+            response_data["BALANCE"] = principal
+            
             response_data.update({
-                "INTEREST_RATE": float(saving["INTEREST_RATE"]),
-                "PRINCIPAL_AMOUNT": float(saving["PRINCIPAL_AMOUNT"]),
-                "TERM_MONTHS": saving["TERM_MONTHS"],
+                "PRINCIPAL_AMOUNT": principal,
+                "INTEREST_RATE": interest_rate,
+                "TERM_MONTHS": term_months,
+                "START_DATE": str(saving["START_DATE"]),
                 "MATURITY_DATE": str(saving["MATURITY_DATE"]),
-                "START_DATE": str(saving["START_DATE"])
+                "SAVING_ACC_ID": saving["SAVING_ACC_ID"],
+                "MONTHLY_INTEREST": round(total_interest, 2) # Thêm trường này để Android nhận
             })
+        else:
+            # Nếu vẫn None, tức là database chưa có dòng nào trong SAVING_DETAIL cho Account này
+            print(f"LỖI: Không tìm thấy dữ liệu trong SAVING_DETAIL cho ACCOUNT_ID: {account_id}")
 
     elif acc_type == "mortgage":
         mort = MortageDetailModel.get_by_account(account_id)

@@ -9,7 +9,7 @@ from models.ekyc_model import (
     get_ekyc_by_id
 )
 import base64
-from services.biometric_service import register_face
+# from services.biometric_service import register_face
 import datetime
 
 def create_ekyc(user_id, data):

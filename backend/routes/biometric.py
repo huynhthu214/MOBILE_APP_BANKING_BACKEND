@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.biometric_service import register_face, verify_face
+# from services.biometric_service import verify_face
 from services.security_utils import decode_access_token
 
 bp = Blueprint('biometric', __name__, url_prefix='/biometric/face')

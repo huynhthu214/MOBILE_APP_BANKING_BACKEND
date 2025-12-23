@@ -12,41 +12,18 @@ def now():
     return datetime.now()
 
 def generate_sequential_id(prefix, table_name, id_col, width=6, conn=None):
-    close_conn = False
-    if conn is None:
-        conn = get_conn()
-        close_conn = True
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"SELECT {id_col} FROM {table_name} ORDER BY {id_col} DESC LIMIT 1"
+        )
+        row = cursor.fetchone()
 
-    try:
-        with conn.cursor() as cur:
-            query = f"SELECT {id_col} FROM {table_name} ORDER BY {id_col} DESC LIMIT 1"
-            try:
-                cur.execute(query + " FOR UPDATE")
-            except Exception:
-                cur.execute(query)
+        if not row:
+            return f"{prefix}{str(1).zfill(width)}"
 
-            row = cur.fetchone()
-            last_id = None
-            if row:
-                try:
-                    last_id = list(row.values())[0] if isinstance(row, dict) else row[0]
-                except Exception:
-                    last_id = None
-
-            if last_id:
-                num_part = last_id.replace(prefix, "")
-                try:
-                    number = int(num_part)
-                except Exception:
-                    number = 0
-                number += 1
-            else:
-                number = 1
-
-            return f"{prefix}{number:0{width}d}"
-    finally:
-        if close_conn:
-            conn.close()
+        last_id = row[id_col]   
+        last_num = int(last_id[len(prefix):])
+        return f"{prefix}{str(last_num + 1).zfill(width)}"
 
 def generate_otp_code(length=6):
     return ''.join(random.choices(string.digits, k=length))
@@ -109,10 +86,13 @@ def create_otp_conn(conn, user_id, purpose, expiry_seconds=300):
     return {"OTP_ID": otp_id, "CODE": code, "EXPIRES_AT": expires}
 
 def get_valid_otp_conn(conn, user_id, code, purpose):
+    current_time = now()
+    print(f"[DEBUG] Checking OTP: User={user_id}, Code={code}, Purpose={purpose}, Time={current_time}")
     with conn.cursor() as cur:
+        # Đảm bảo câu lệnh SQL so sánh đúng cột EXPIRES_AT
         cur.execute(
             "SELECT * FROM OTP WHERE USER_ID = %s AND CODE = %s AND PURPOSE = %s AND IS_USED = %s AND EXPIRES_AT >= %s",
-            (user_id, code, purpose, False, now())
+            (user_id, code, purpose, False, current_time)
         )
         return cur.fetchone()
 
@@ -827,5 +807,273 @@ def verify_pin_service(transaction_id, pin_code):
         conn.rollback()
         print(f"[VERIFY PIN ERROR] {e}")
         return {"status": "error", "message": f"Server error: {e}"}
+    finally:
+        conn.close()
+
+# --- GIAI ĐOẠN 1: TẠO YÊU CẦU VÀ GỬI OTP ---
+def mortgage_payment_create_service(account_id, mortgage_id, amount):
+    if amount is None or amount <= 0:
+        return {"status": "error", "message": "Số tiền không hợp lệ"}
+
+    conn = get_conn()
+    try:
+        conn.begin()
+        with conn.cursor() as cur:
+            # 1. Kiểm tra tài khoản nguồn (Checking Account)
+            cur.execute("SELECT * FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE", (account_id,))
+            acc = cur.fetchone()
+            if not acc:
+                return {"status": "error", "message": "Tài khoản thanh toán không tồn tại"}
+
+            # 2. Kiểm tra số dư
+            if (acc.get("BALANCE") or 0) < amount:
+                return {"status": "error", "message": "Số dư không đủ để thanh toán"}
+
+            # 3. Kiểm tra khoản vay (Bảng MORTAGE_DETAIL)
+            # Lưu ý: Sửa tên cột trong câu điều kiện thành ACCOUNT_ID
+            cur.execute("SELECT REMAINING_BALANCE, MORTAGE_ACC_ID FROM MORTAGE_DETAIL WHERE ACCOUNT_ID = %s", (mortgage_id,))
+            mort = cur.fetchone()
+            if not mort:
+                return {"status": "error", "message": "Thông tin khoản vay không tồn tại"}
+            
+            # 4. Tạo giao dịch ở trạng thái PENDING
+            tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
+            tx = {
+                "TRANSACTION_ID": tx_id,
+                "ACCOUNT_ID": account_id,
+                "DEST_ACC_NUM": mortgage_id, # Lưu ID khoản vay vào đây để dùng lúc confirm
+                "AMOUNT": amount,
+                "TYPE": "mortgage_payment",
+                "STATUS": "PENDING",
+                "CREATED_AT": now()
+            }
+            insert_transaction(conn, tx)
+
+            # 5. Tạo và gửi OTP qua Email
+            user_id = acc.get("USER_ID")
+            otp = create_otp_conn(conn, user_id, purpose="mortgage_payment")
+            
+            # Lấy email người dùng
+            cur.execute("SELECT EMAIL FROM USER WHERE USER_ID = %s", (user_id,))
+            user_row = cur.fetchone()
+            user_email = user_row["EMAIL"] if isinstance(user_row, dict) else user_row[0]
+
+            if user_email:
+                html_content = otp_email_template(otp["CODE"], purpose="Thanh toán khoản vay")
+                send_email(user_email, "Mã OTP thanh toán khoản vay", html_content)
+            else:
+                conn.rollback()
+                return {"status": "error", "message": "Người dùng chưa đăng ký email"}
+
+            conn.commit()
+            return {
+                "status": "success", 
+                "transaction_id": tx_id, 
+                "message": "Mã OTP đã được gửi đến email của bạn"
+            }
+    except Exception as e:
+        conn.rollback()
+        print(f"[MORTGAGE CREATE ERROR] {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        conn.close()
+
+# --- GIAI ĐOẠN 2: XÁC NHẬN OTP VÀ TRỪ TIỀN THẬT ---
+def mortgage_payment_confirm_service(transaction_id, otp_code):
+    conn = get_conn()
+    try:
+        conn.begin()
+        # 1. Lấy thông tin giao dịch PENDING
+        tx = get_transaction_by_id_conn(conn, transaction_id)
+        if not tx or tx["STATUS"] != "PENDING":
+            return {"status": "error", "message": "Giao dịch không hợp lệ hoặc đã xử lý"}
+
+        account_id = tx["ACCOUNT_ID"]
+        mortgage_id = tx["DEST_ACC_NUM"] # Lấy lại ID khoản vay đã lưu lúc nãy
+        amount = tx["AMOUNT"]
+
+        # 2. Lock tài khoản và kiểm tra OTP
+        with conn.cursor() as cur:
+            cur.execute("SELECT USER_ID, BALANCE FROM ACCOUNT WHERE ACCOUNT_ID = %s FOR UPDATE", (account_id,))
+            acc = cur.fetchone()
+            
+            otp_row = get_valid_otp_conn(conn, acc["USER_ID"], otp_code, "mortgage_payment")
+            if not otp_row:
+                return {"status": "error", "message": "Mã OTP không đúng hoặc đã hết hạn"}
+
+            # 3. THỰC HIỆN TRỪ TIỀN VÀ CẬP NHẬT NGÀY
+        with conn.cursor() as cur:
+            # Trừ tiền tài khoản chính
+            cur.execute("UPDATE ACCOUNT SET BALANCE = BALANCE - %s WHERE ACCOUNT_ID = %s", (amount, account_id))
+            
+            # CẬP NHẬT QUAN TRỌNG:
+            # 1. Trừ dư nợ gốc (REMAINING_BALANCE)
+            # 2. Tăng ngày thanh toán tiếp theo lên 1 tháng (NEXT_PAYMENT_DATE)
+            query_update_mortgage = """
+                UPDATE MORTAGE_DETAIL 
+                SET REMAINING_BALANCE = REMAINING_BALANCE - %s,
+                    NEXT_PAYMENT_DATE = DATE_ADD(NEXT_PAYMENT_DATE, INTERVAL 1 MONTH)
+                WHERE MORTAGE_ACC_ID = %s
+            """
+            cur.execute(query_update_mortgage, (amount, mortgage_id))
+
+            # 4. Cập nhật trạng thái OTP và Giao dịch
+            mark_otp_used_conn(conn, otp_row["OTP_ID"])
+            update_transaction_status_conn(conn, transaction_id, "COMPLETED", complete_at=now())
+
+        conn.commit()
+        return {"status": "success", "message": "Thanh toán khoản vay thành công"}
+    except Exception as e:
+        conn.rollback()
+        print(f"[MORTGAGE CONFIRM ERROR] {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        conn.close()
+
+# -------------------------
+# Savings Flow (Deposit to Savings)
+# -------------------------
+
+def savings_deposit_service(account_id, amount): # CHỈ NHẬN 2 THAM SỐ
+    print(f"DEBUG: Nhận yêu cầu nạp tiền cho ID: {account_id}, Số tiền: {amount}")
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Bước 1: Tìm SAVING_ACC_ID từ bảng ACCOUNT
+            cur.execute(
+                "SELECT BALANCE, SAVING_ACC_ID FROM ACCOUNT WHERE ACCOUNT_ID=%s FOR UPDATE",
+                (account_id,)
+            )
+            acc = cur.fetchone()
+            
+            if not acc:
+                return {"status": "error", "message": "Không tìm thấy tài khoản"}
+            
+            # Lấy mã sổ tiết kiệm liên kết
+            s_acc_id = acc.get("SAVING_ACC_ID")
+            if not s_acc_id:
+                return {"status": "error", "message": "Tài khoản không liên kết với sổ tiết kiệm nào"}
+
+            # Bước 2: Kiểm tra sổ tiết kiệm trong bảng chi tiết
+            cur.execute(
+                "SELECT PRINCIPAL_AMOUNT FROM SAVING_DETAIL WHERE SAVING_ACC_ID=%s FOR UPDATE",
+                (s_acc_id,)
+            )
+            saving_detail = cur.fetchone()
+            if not saving_detail:
+                return {"status": "error", "message": "Không tìm thấy chi tiết sổ tiết kiệm"}
+
+            cur.execute(
+                "UPDATE ACCOUNT SET BALANCE = BALANCE - %s WHERE ACCOUNT_ID=%s",
+                (amount, account_id)
+            )
+
+            # 3.2. Cộng tiền vào bảng SAVING_DETAIL (Tiền gửi gốc)
+            cur.execute(
+                "UPDATE SAVING_DETAIL SET PRINCIPAL_AMOUNT = PRINCIPAL_AMOUNT + %s WHERE SAVING_ACC_ID=%s",
+                (amount, s_acc_id)
+            )
+            tx_id = generate_sequential_id(
+                "T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn
+            )
+
+            insert_transaction(conn, {
+                "TRANSACTION_ID": tx_id,
+                "ACCOUNT_ID": account_id,
+                "AMOUNT": amount,
+                "TYPE": "savings_deposit",
+                "STATUS": "COMPLETED",
+                "CREATED_AT": now()
+            })
+
+        conn.commit()
+        return {"status": "success", "message": "Gửi tiền tiết kiệm thành công"}
+    except Exception as e:
+        conn.rollback()
+        return {"status": "error", "message": str(e)}
+    finally:
+        conn.close()
+
+def savings_withdraw_create_service(account_id, amount, pin):
+    conn = get_conn()
+    try:
+        conn.begin()
+        # 1. Kiểm tra mã PIN của tài khoản
+        acc = get_account_by_id(conn, account_id)
+        if str(acc.get("PIN_CODE")) != str(pin):
+            return {"status": "error", "message": "Mã PIN không chính xác"}
+
+        # 2. Kiểm tra số dư sổ tiết kiệm (Chỉ xem, không trừ)
+        s_acc_id = acc.get("SAVING_ACC_ID")
+        with conn.cursor() as cur:
+            cur.execute("SELECT PRINCIPAL_AMOUNT FROM SAVING_DETAIL WHERE SAVING_ACC_ID=%s", (s_acc_id,))
+            detail = cur.fetchone()
+            if not detail or detail["PRINCIPAL_AMOUNT"] < amount:
+                return {"status": "error", "message": "Số dư sổ tiết kiệm không đủ"}
+
+        # 3. Tạo Transaction trạng thái PENDING
+        tx_id = generate_sequential_id("T", "TRANSACTIONS", "TRANSACTION_ID", conn=conn)
+        insert_transaction(conn, {
+            "TRANSACTION_ID": tx_id,
+            "ACCOUNT_ID": account_id,
+            "AMOUNT": amount,
+            "TYPE": "savings_withdraw",
+            "STATUS": "PENDING", # Quan trọng: Để PENDING
+            "CREATED_AT": now()
+        })
+
+        # 4. Tạo và gửi OTP qua Email
+        acc = get_account_by_id(conn, account_id)
+        user_id = acc.get("USER_ID")
+        otp = create_otp_conn(conn, user_id, purpose="savings_withdraw")
+        # Gọi hàm send_email của bạn ở đây...
+        with conn.cursor() as cur:
+            cur.execute("SELECT EMAIL FROM USER WHERE USER_ID = %s", (user_id,))
+            user_row = cur.fetchone()
+            user_email = user_row["EMAIL"] if isinstance(user_row, dict) else user_row[0]
+
+        if user_email:
+            html_content = otp_email_template(otp["CODE"], purpose="Rút tiền tiết kiệm")
+            is_sent, error_msg = send_email(user_email, "Xác thực Rút tiền - ZY Banking", html_content)
+            if not is_sent:
+                conn.rollback()
+                return {"status": "error", "message": "Không thể gửi email OTP"}
+        
+        conn.commit()
+        return {"status": "success", "transaction_id": tx_id, "message": "OTP đã gửi"}
+    except Exception as e:
+        conn.rollback()
+        return {"status": "error", "message": str(e)}
+    finally:
+        conn.close()
+
+def savings_withdraw_confirm_service(transaction_id, otp_code):
+    conn = get_conn()
+    try:
+        conn.begin()
+        # 1. Kiểm tra OTP
+        tx = get_transaction_by_id_conn(conn, transaction_id)
+        acc = get_account_by_id(conn, tx["ACCOUNT_ID"])
+        otp_row = get_valid_otp_conn(conn, acc["USER_ID"], otp_code, "savings_withdraw")
+        
+        if not otp_row:
+            return {"status": "error", "message": "OTP sai hoặc hết hạn"}
+
+        # 2. THỰC HIỆN TRỪ TIỀN THỰC SỰ
+        s_acc_id = acc["SAVING_ACC_ID"]
+        with conn.cursor() as cur:
+            # Trừ tiền sổ tiết kiệm
+            cur.execute("UPDATE SAVING_DETAIL SET PRINCIPAL_AMOUNT = PRINCIPAL_AMOUNT - %s WHERE SAVING_ACC_ID=%s", (tx["AMOUNT"], s_acc_id))
+            # Cộng tiền tài khoản chính
+            cur.execute("UPDATE ACCOUNT SET BALANCE = BALANCE + %s WHERE ACCOUNT_ID=%s", (tx["AMOUNT"], tx["ACCOUNT_ID"]))
+            # Đổi trạng thái giao dịch
+            update_transaction_status_conn(conn, transaction_id, "COMPLETED", complete_at=now())
+
+        mark_otp_used_conn(conn, otp_row["OTP_ID"])
+        conn.commit()
+        return {"status": "success", "message": "Rút tiền tiết kiệm thành công"}
+    except Exception as e:
+        conn.rollback()
+        return {"status": "error", "message": str(e)}
     finally:
         conn.close()

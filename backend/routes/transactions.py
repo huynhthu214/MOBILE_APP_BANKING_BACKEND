@@ -12,7 +12,10 @@ from services.transaction_service import (
     withdraw_create_service,
     withdraw_confirm_service,
     get_user_by_account_service,
-    verify_pin_service
+    verify_pin_service,
+    savings_deposit_service,
+    savings_withdraw_create_service,
+    savings_withdraw_confirm_service
 )
 
 # Base URL: /api/v1/transactions
@@ -220,3 +223,94 @@ def verify_pin():
         data.get("transaction_id"),
         data.get("pin_code")
     )
+
+@bp.route('/savings/deposit', methods=['POST'])
+def savings_deposit():
+    data = request.get_json()
+    
+    acc_id = data.get('account_id')
+    amount = data.get('amount')
+    
+    result = savings_deposit_service(
+        acc_id, 
+        amount
+    )
+    return jsonify(result)
+
+# 1. Route Khởi tạo: Kiểm tra PIN và gửi OTP (Chưa trừ tiền)
+@bp.route('/savings/withdraw/create', methods=['POST'])
+def savings_withdraw_create():
+    data = request.get_json()
+    
+    acc_id = data.get('account_id')
+    amount = data.get('amount')
+    pin = data.get('pin') # Android gửi PIN lên ở bước này
+    
+    if not acc_id or not amount or not pin:
+        return jsonify({"status": "error", "message": "Thiếu dữ liệu: account_id, amount hoặc pin"}), 400
+    
+    # Gọi service mới để tạo giao dịch PENDING và gửi Mail OTP
+    result = savings_withdraw_create_service(acc_id, amount, pin)
+    
+    return jsonify(result)
+
+# 2. Route Xác nhận: Kiểm tra OTP và Thực hiện trừ/cộng tiền
+@bp.route('/savings/withdraw/confirm', methods=['POST'])
+def savings_withdraw_confirm():
+    data = request.get_json()
+    
+    transaction_id = data.get('transaction_id')
+    otp_code = data.get('otp_code')
+    
+    if not transaction_id or not otp_code:
+        return jsonify({"status": "error", "message": "Thiếu transaction_id hoặc otp_code"}), 400
+    
+    # Gọi service xác nhận OTP và thực hiện UPDATE Database
+    result = savings_withdraw_confirm_service(transaction_id, otp_code)
+    
+    return jsonify(result)
+
+# ==========================================================
+#                     MORTGAGE (THẾ CHẤP / VAY)
+# ==========================================================
+
+# Bước 1: Khởi tạo giao dịch thanh toán và gửi OTP
+@bp.route('/mortgage/pay/create', methods=['POST'])
+def mortgage_pay_create_route():
+    data = request.get_json()
+    print("DEBUG DATA NHẬN ĐƯỢC:", data)
+    # Kiểm tra các trường bắt buộc
+    error = require_fields(data, ["account_id", "mortgage_id", "amount"])
+    if error: 
+        return jsonify(error), 400
+        
+    # Gọi service mới đã tách (Giai đoạn 1)
+    from services.transaction_service import mortgage_payment_create_service
+    result = mortgage_payment_create_service(
+        account_id=data['account_id'],
+        mortgage_id=data['mortgage_id'],
+        amount=data['amount']
+    )
+    print("KẾT QUẢ SERVICE TRẢ VỀ:", result)
+    return jsonify(result), 200 if result['status'] == 'success' else 400
+
+# Bước 2: Xác thực OTP và thực hiện trừ tiền thực tế
+@bp.route('/mortgage/pay/confirm', methods=['POST'])
+def mortgage_pay_confirm_route():
+    data = request.get_json()
+    
+    # Android gửi lên transaction_id và mã otp_code (hoặc otp)
+    otp = data.get("otp_code") or data.get("otp")
+    transaction_id = data.get("transaction_id")
+
+    if not transaction_id or not otp:
+        return jsonify({"status": "error", "message": "Missing transaction_id or otp"}), 400
+
+    # Gọi service xác nhận (Giai đoạn 2)
+    from services.transaction_service import mortgage_payment_confirm_service
+    result = mortgage_payment_confirm_service(
+        transaction_id=transaction_id,
+        otp_code=otp
+    )
+    
+    return jsonify(result), 200 if result['status'] == 'success' else 400

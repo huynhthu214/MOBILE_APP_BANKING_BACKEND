@@ -1,5 +1,6 @@
 # Sửa lại hàm template để nhận thêm tham số expires_in
 def otp_email_template(otp_code, purpose="transaction", expires_in="5 phút"):
+    print(f"DEBUG OTP: {otp_code}")
     return f"""
     <html>
         <body style="font-family: Arial, sans-serif">

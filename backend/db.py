@@ -9,5 +9,5 @@ def get_conn():
         password=os.getenv("DB_PASSWORD", ""),
         database=os.getenv("DB_NAME", "zybank"),
         cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True
+        autocommit=False   
     )
